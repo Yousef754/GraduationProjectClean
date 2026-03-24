@@ -29,14 +29,10 @@ namespace ECommerce.Services.MappingProfiles
             if (string.IsNullOrEmpty(source.Product.PictureUrl))
                 return string.Empty;
 
-            if (
-                source.Product.PictureUrl.StartsWith("http")
-                || source.Product.PictureUrl.StartsWith("https")
-            )
+            if (source.Product.PictureUrl.StartsWith("http") || source.Product.PictureUrl.StartsWith("https"))
                 return source.Product.PictureUrl;
 
             var BaseUrl = _configuration.GetSection("URLs")["BaseUrl"];
-
             if (string.IsNullOrEmpty(BaseUrl))
                 return string.Empty;
 

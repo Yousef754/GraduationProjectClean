@@ -2,13 +2,11 @@
 {
     public class BasketItem
     {
-        public int Id { get; set; }
-        public string ProductName { get; set; } = default!;
-
-        public string PictureUrl { get; set; } = default!;
-
-        public decimal Price { get; set; }
-
-        public int Quantity { get; set; }
+        public int Id { get; set; }               // معرف العنصر في السلة
+        public int ProductId { get; set; }        // 🔑 ربط مباشر بالـ Product من الداتابيز
+        public string ProductName { get; set; } = default!;  // نسخة الاسم
+        public string PictureUrl { get; set; } = default!;   // نسخة الصورة
+        public decimal Price { get; set; }        // نسخة السعر
+        public int Quantity { get; set; }         // عدد القطع
     }
 }

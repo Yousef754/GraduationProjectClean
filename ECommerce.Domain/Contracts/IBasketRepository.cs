@@ -1,9 +1,10 @@
-﻿using System;
+﻿using ECommerce.Domain.Entities.BasketModule;
+using ECommerce.Domain.Entities.ProductModule;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ECommerce.Domain.Entities.BasketModule;
 
 namespace ECommerce.Domain.Contracts
 {
@@ -14,8 +15,11 @@ namespace ECommerce.Domain.Contracts
         Task<CustomerBasket?> CreateOrUpdateBasketAsync(
             CustomerBasket basket,
             TimeSpan timeToLive = default
-        ); 
+        );
 
         Task<bool> DeleteBasketAsync(string basketId);
+
+        // ميزة جديدة: جلب المنتج من DB
+        Task<Product?> GetProductByIdAsync(int productId);
     }
 }

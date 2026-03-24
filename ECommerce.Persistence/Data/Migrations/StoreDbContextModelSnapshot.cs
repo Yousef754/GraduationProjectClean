@@ -17,10 +17,35 @@ namespace ECommerce.Persistence.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "8.0.25")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.AppUser.AppUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderModule.DeliveryMethod", b =>
                 {
@@ -32,25 +57,40 @@ namespace ECommerce.Persistence.Data.Migrations
 
                     b.Property<string>("DeliveryTime")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(8,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ShortName")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("DeliveryMethod");
+                    b.ToTable("DeliveryMethods");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DeliveryTime = "3-5 days",
+                            Description = "Standard Delivery",
+                            Price = 500m,
+                            ShortName = "Standard"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DeliveryTime = "1-2 days",
+                            Description = "Fast Delivery",
+                            Price = 1000m,
+                            ShortName = "Express"
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderModule.Order", b =>
@@ -69,11 +109,12 @@ namespace ECommerce.Persistence.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(8,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UserEmail")
                         .IsRequired()
@@ -83,7 +124,7 @@ namespace ECommerce.Persistence.Data.Migrations
 
                     b.HasIndex("DeliveryMethodId");
 
-                    b.ToTable("Order");
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderModule.OrderItem", b =>
@@ -98,7 +139,7 @@ namespace ECommerce.Persistence.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(8,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -107,7 +148,41 @@ namespace ECommerce.Persistence.Data.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderItem");
+                    b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Mobiles"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Laptops"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Accessories"
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.Product", b =>
@@ -117,6 +192,13 @@ namespace ECommerce.Persistence.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -137,53 +219,115 @@ namespace ECommerce.Persistence.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("ProductBrandId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductTypeId")
+                    b.Property<int>("Quantity")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductBrandId");
-
-                    b.HasIndex("ProductTypeId");
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("Products");
-                });
 
-            modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.ProductBrand", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProductBrands");
-                });
-
-            modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.ProductType", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProductTypes");
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CategoryId = 1,
+                            Color = "Black",
+                            Description = "Latest Apple phone",
+                            Name = "iPhone 14",
+                            PictureUrl = "url1",
+                            Price = 25000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CategoryId = 1,
+                            Color = "White",
+                            Description = "Flagship Samsung phone",
+                            Name = "Samsung Galaxy S23",
+                            PictureUrl = "url2",
+                            Price = 22000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CategoryId = 1,
+                            Color = "Green",
+                            Description = "Google's new phone",
+                            Name = "Google Pixel 8",
+                            PictureUrl = "url3",
+                            Price = 20000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CategoryId = 2,
+                            Color = "Silver",
+                            Description = "High-end laptop",
+                            Name = "Dell XPS 15",
+                            PictureUrl = "url4",
+                            Price = 45000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CategoryId = 2,
+                            Color = "Gray",
+                            Description = "Apple's lightweight laptop",
+                            Name = "MacBook Air M2",
+                            PictureUrl = "url5",
+                            Price = 55000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CategoryId = 2,
+                            Color = "Black",
+                            Description = "Convertible laptop",
+                            Name = "HP Spectre x360",
+                            PictureUrl = "url6",
+                            Price = 40000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CategoryId = 3,
+                            Color = "White",
+                            Description = "Apple wireless earbuds",
+                            Name = "AirPods Pro",
+                            PictureUrl = "url7",
+                            Price = 7000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CategoryId = 3,
+                            Color = "Black",
+                            Description = "Wireless mouse",
+                            Name = "Logitech MX Master 3",
+                            PictureUrl = "url8",
+                            Price = 2000m,
+                            Quantity = 0
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CategoryId = 3,
+                            Color = "White",
+                            Description = "Fast charging adapter",
+                            Name = "Samsung Charger",
+                            PictureUrl = "url9",
+                            Price = 500m,
+                            Quantity = 0
+                        });
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderModule.Order", b =>
@@ -191,7 +335,7 @@ namespace ECommerce.Persistence.Data.Migrations
                     b.HasOne("ECommerce.Domain.Entities.OrderModule.DeliveryMethod", "DeliveryMethod")
                         .WithMany()
                         .HasForeignKey("DeliveryMethodId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.OwnsOne("ECommerce.Domain.Entities.OrderModule.OrderAddress", "Address", b1 =>
@@ -201,32 +345,33 @@ namespace ECommerce.Persistence.Data.Migrations
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<string>("FirstName")
                                 .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
 
                             b1.Property<string>("LastName")
                                 .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                                .HasMaxLength(100)
+                                .HasColumnType("nvarchar(100)");
+
+                            b1.Property<string>("Phone")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<string>("Street")
                                 .IsRequired()
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.HasKey("OrderId");
 
-                            b1.ToTable("Order");
+                            b1.ToTable("Orders");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderId");
@@ -242,7 +387,8 @@ namespace ECommerce.Persistence.Data.Migrations
                 {
                     b.HasOne("ECommerce.Domain.Entities.OrderModule.Order", null)
                         .WithMany("Items")
-                        .HasForeignKey("OrderId");
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.OwnsOne("ECommerce.Domain.Entities.OrderModule.ProductItemOrdered", "Product", b1 =>
                         {
@@ -251,20 +397,18 @@ namespace ECommerce.Persistence.Data.Migrations
 
                             b1.Property<string>("PictureUrl")
                                 .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("nvarchar(100)");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<int>("ProductId")
                                 .HasColumnType("int");
 
                             b1.Property<string>("ProductName")
                                 .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("nvarchar(100)");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.HasKey("OrderItemId");
 
-                            b1.ToTable("OrderItem");
+                            b1.ToTable("OrderItems");
 
                             b1.WithOwner()
                                 .HasForeignKey("OrderItemId");
@@ -276,26 +420,23 @@ namespace ECommerce.Persistence.Data.Migrations
 
             modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.Product", b =>
                 {
-                    b.HasOne("ECommerce.Domain.Entities.ProductModule.ProductBrand", "ProductBrand")
-                        .WithMany()
-                        .HasForeignKey("ProductBrandId")
+                    b.HasOne("ECommerce.Domain.Entities.ProductModule.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ECommerce.Domain.Entities.ProductModule.ProductType", "ProductType")
-                        .WithMany()
-                        .HasForeignKey("ProductTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProductBrand");
-
-                    b.Navigation("ProductType");
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("ECommerce.Domain.Entities.OrderModule.Order", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("ECommerce.Domain.Entities.ProductModule.Category", b =>
+                {
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

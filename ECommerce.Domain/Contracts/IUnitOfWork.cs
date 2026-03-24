@@ -1,9 +1,10 @@
-﻿using System;
+﻿using ECommerce.Domain.Entities;
+using ECommerce.Domain.Entities.AppUser;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ECommerce.Domain.Entities;
 
 namespace ECommerce.Domain.Contracts
 {
@@ -13,5 +14,10 @@ namespace ECommerce.Domain.Contracts
 
         IGenericRepository<TEntity, TKey> GetRepository<TEntity, TKey>()
             where TEntity : BaseEntity<TKey>;
+
+        //IGenericRepository<AppUser, int> Users { get; }
+        IUserRepository Users { get; set; }
+
+
     }
 }

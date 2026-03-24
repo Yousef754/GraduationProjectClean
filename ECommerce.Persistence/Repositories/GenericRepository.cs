@@ -13,65 +13,73 @@ using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 namespace ECommerce.Persistence.Repositories
 {
     public class GenericRepository<TEntity, TKey> : IGenericRepository<TEntity, TKey>
-        where TEntity : BaseEntity<TKey>
+    where TEntity : BaseEntity<TKey>
     {
         private readonly StoreDbContext _dbContext;
+        private readonly DbSet<TEntity> _dbSet;
 
         public GenericRepository(StoreDbContext dbContext)
         {
             _dbContext = dbContext;
+            _dbSet = dbContext.Set<TEntity>();
         }
 
+        // Add
         public async Task AddAsync(TEntity entity)
         {
-            await _dbContext.Set<TEntity>().AddAsync(entity);
+            await _dbSet.AddAsync(entity);
         }
 
-        public async Task<int> CountAsync(ISpecifications<TEntity, TKey> specifications)
-        {
-            return await SpecificationEvaluator
-                .CreateQuery(_dbContext.Set<TEntity>(), specifications) 
-                .CountAsync();
-        }
-
+        // Delete
         public void Delete(TEntity entity)
         {
-            _dbContext.Set<TEntity>().Remove(entity);
+            _dbSet.Remove(entity);
         }
 
+        // Update
+        public void Update(TEntity entity)
+        {
+            _dbSet.Update(entity);
+        }
+
+        // Get All
         public async Task<IEnumerable<TEntity>> GetAllAsync()
         {
-            return await _dbContext.Set<TEntity>().ToListAsync();
+            return await _dbSet.ToListAsync();
         }
 
-        public async Task<IEnumerable<TEntity>> GetAllAsync(
-            ISpecifications<TEntity, TKey> specifications
-        )
+        public async Task<IEnumerable<TEntity>> GetAllAsync(ISpecifications<TEntity, TKey> specifications)
         {
-            var Query = SpecificationEvaluator.CreateQuery(
-                _dbContext.Set<TEntity>(),
-                specifications
-            );
-
-            return await Query.ToListAsync();
+            var query = SpecificationEvaluator.CreateQuery(_dbSet, specifications);
+            return await query.ToListAsync();
         }
 
-        public async Task<TEntity?> GetByIdAsync(TKey id) =>
-            await _dbContext.Set<TEntity>().FindAsync(id);
+        // Get By Id
+        public async Task<TEntity?> GetByIdAsync(TKey id)
+        {
+            return await _dbSet.FindAsync(id);
+        }
 
         public async Task<TEntity?> GetByIdAsync(ISpecifications<TEntity, TKey> specifications)
         {
-            var Query = SpecificationEvaluator.CreateQuery(
-                _dbContext.Set<TEntity>(),
-                specifications
-            );
-
-            return await Query.FirstOrDefaultAsync();
+            var query = SpecificationEvaluator.CreateQuery(_dbSet, specifications);
+            return await query.FirstOrDefaultAsync();
         }
 
-        public void Update(TEntity entity)
+        // Count (for Pagination / Analytics)
+        public async Task<int> CountAsync(ISpecifications<TEntity, TKey> specifications)
         {
-            _dbContext.Set<TEntity>().Update(entity);
+            var query = SpecificationEvaluator.CreateQuery(_dbSet, specifications);
+            return await query.CountAsync();
         }
+
+        // Save changes
+
+        public IQueryable<TEntity> GetAllAsQueryable()
+        {
+            return _dbContext.Set<TEntity>().AsQueryable();
+        }
+
+
     }
 }

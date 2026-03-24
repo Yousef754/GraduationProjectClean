@@ -9,23 +9,42 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECommerce.Persistence.Data.Configurations
 {
-    internal class OrderConfigurations : IEntityTypeConfiguration<Order>
+    public class OrderConfigurations : IEntityTypeConfiguration<Order>
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            builder.Property(X => X.SubTotal).HasColumnType("decimal(8,2)");
+            builder.Property(o => o.UserEmail)
+                .IsRequired();
 
-            builder.OwnsOne(
-                X => X.Address,
-                OE =>
-                {
-                    OE.Property(X => X.FirstName).HasMaxLength(50);
-                    OE.Property(X => X.LastName).HasMaxLength(50);
-                    OE.Property(X => X.City).HasMaxLength(50);
-                    OE.Property(X => X.Street).HasMaxLength(50);
-                    OE.Property(X => X.Country).HasMaxLength(50);
-                }
-            );
+            builder.Property(o => o.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(o => o.Status)
+                .HasConversion<string>(); // 👈 يخزنه كـ string
+
+            // Address (Owned Type)
+            builder.OwnsOne(o => o.Address, a =>
+            {
+                a.WithOwner();
+
+                a.Property(a => a.FirstName).IsRequired().HasMaxLength(100);
+                a.Property(a => a.LastName).IsRequired().HasMaxLength(100);
+                a.Property(a => a.Street).IsRequired();
+                a.Property(a => a.City).IsRequired();
+                a.Property(a => a.Country).IsRequired();
+                a.Property(a => a.Phone).IsRequired();
+            });
+
+            // العلاقة مع DeliveryMethod
+            builder.HasOne(o => o.DeliveryMethod)
+                .WithMany()
+                .HasForeignKey(o => o.DeliveryMethodId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // العلاقة مع OrderItems
+            builder.HasMany(o => o.Items)
+                .WithOne()
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

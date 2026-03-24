@@ -42,32 +42,31 @@ namespace ECommerce.Services
         public async Task<Result<BasketDTO>> CreateOrUpdatePaymentIntentAsync(string basketId)
         {
             var skey = _configuration["Stripe:Skey"];
-            if (skey is null)
-                return Error.Faliure("Failed to obtain Secret Ket Value");
+            if (string.IsNullOrEmpty(skey))
+                return Error.Faliure("Failed to obtain Secret Key Value");
+
             StripeConfiguration.ApiKey = skey;
+
             var basket = await _basketRepository.GetBasketAsync(basketId);
-            if (basket is null)
+            if (basket == null)
                 return Error.NotFound("Basket not found");
 
-
-            if (basket.DeliveryMethodId is null) 
+            if (basket.DeliveryMethodId == null)
                 return Error.Validation("Delivery method is not selected in the basket");
-
 
             var method = await _unitOfWork
                 .GetRepository<DeliveryMethod, int>()
                 .GetByIdAsync(basket.DeliveryMethodId.Value);
 
-            if (method is null)
+            if (method == null)
                 return Error.NotFound("Delivery method not found");
 
             basket.ShippingPrice = method.Price;
 
             foreach (var item in basket.Items)
             {
-                var product = await _unitOfWork.GetRepository<Product, int>().GetByIdAsync(item.Id);
-
-                if (product is null)
+                var product = await _unitOfWork.GetRepository<Product, int>().GetByIdAsync(item.ProductId);
+                if (product == null)
                     return Error.NotFound("ProductItem.NotFound");
 
                 item.Price = product.Price;
@@ -75,35 +74,28 @@ namespace ECommerce.Services
                 item.PictureUrl = product.PictureUrl;
             }
 
-            long amount = (long)(basket.Items.Sum(I => I.Quantity * I.Price) * 100); 
-
-
+            long amount = (long)(basket.Items.Sum(i => i.Quantity * i.Price) * 100);
 
             var stripeService = new PaymentIntentService();
-            if (basket.PaymentIntentID is null) 
-            {
-                #region Integration with External Servic
-                //Integration With any external service
-                //Download Stripe Nuget Package
-                // Collection of classes as DLL
-                // Main class to interact with Stripe API [Create from it object]
-                // Use service inside the main Object [Call function]
-                #endregion
 
+            if (string.IsNullOrEmpty(basket.PaymentIntentID))
+            {
+                // Create new PaymentIntent
                 var options = new PaymentIntentCreateOptions
                 {
                     Amount = amount,
                     Currency = "USD",
-                    PaymentMethodTypes = ["card"],
+                    PaymentMethodTypes = new List<string> { "card" }
                 };
-                var paymentIntent = await stripeService.CreateAsync(options); 
+                var paymentIntent = await stripeService.CreateAsync(options);
+
                 basket.PaymentIntentID = paymentIntent.Id;
                 basket.ClientSecret = paymentIntent.ClientSecret;
             }
             else
             {
+                // Update existing PaymentIntent
                 var options = new PaymentIntentUpdateOptions { Amount = amount };
-
                 await stripeService.UpdateAsync(basket.PaymentIntentID, options);
             }
 
@@ -117,29 +109,32 @@ namespace ECommerce.Services
             var endPointSecret = _configuration["Stripe:EndpointSecret"];
             var stripeEvent = EventUtility.ConstructEvent(request, stripeSignature, endPointSecret);
 
-            // Handle the event
             var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+            if (paymentIntent == null) return;
+
             var order = await _unitOfWork
                 .GetRepository<Order, Guid>()
-                .GetByIdAsync(new OrderWithPaymentIntentSpecifications(paymentIntent!.Id));
+                .GetByIdAsync(new OrderWithPaymentIntentSpecifications(paymentIntent.Id));
+
+            if (order == null) return;
+
             if (stripeEvent.Type == EventTypes.PaymentIntentSucceeded)
             {
                 order.Status = OrderStatus.PaymentReceived;
-
-                _unitOfWork.GetRepository<Order, Guid>().Update(order);
-
-                await _unitOfWork.SaveChangesAsync();
             }
             else if (stripeEvent.Type == EventTypes.PaymentIntentPaymentFailed)
             {
                 order.Status = OrderStatus.PaymentFailed;
-                _unitOfWork.GetRepository<Order, Guid>().Update(order);
-                await _unitOfWork.SaveChangesAsync();
             }
             else
             {
+                // Optionally log unhandled event
                 Console.WriteLine("Unhandled event type: {0}", stripeEvent.Type);
+                return;
             }
+
+            _unitOfWork.GetRepository<Order, Guid>().Update(order);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

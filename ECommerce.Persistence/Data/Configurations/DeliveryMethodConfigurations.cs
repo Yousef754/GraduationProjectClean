@@ -9,15 +9,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECommerce.Persistence.Data.Configurations
 {
-    internal class DeliveryMethodConfigurations : IEntityTypeConfiguration<DeliveryMethod>
+    public class DeliveryMethodConfigurations : IEntityTypeConfiguration<DeliveryMethod>
     {
         public void Configure(EntityTypeBuilder<DeliveryMethod> builder)
         {
-            builder.Property(X => X.Price).HasColumnType("decimal(8,2)");
+            builder.Property(d => d.Price)
+                .HasColumnType("decimal(18,2)");
 
-            builder.Property(X => X.ShortName).HasMaxLength(50);
-            builder.Property(X => X.Description).HasMaxLength(100);
-            builder.Property(X => X.DeliveryTime).HasMaxLength(50);
+            builder.Property(d => d.ShortName)
+                .IsRequired();
+
+            builder.Property(d => d.Description)
+                .IsRequired();
+
+            builder.Property(d => d.DeliveryTime)
+                .IsRequired();
         }
     }
 }

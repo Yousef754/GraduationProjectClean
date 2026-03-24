@@ -4,48 +4,51 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ECommerce.Domain.Entities.ProductModule;
+using ECommerce.Services.Specifications;
+using ECommerce.Services.Specifications.ProductSpecifications;
 using ECommerce.Shared;
 
 namespace ECommerce.Services.Specifications.ProductSpecifications
 {
     internal class ProductWithTypeAndBrandSpecification : BaseSpecifications<Product, int>
+  {
+
+
+    public ProductWithTypeAndBrandSpecification(ProductQueryParams queryParams)
+        : base(ProductSpecificationsHelper.GetCriteria(queryParams))
     {
+        AddInclude(P => P.Category);
         
 
-        public ProductWithTypeAndBrandSpecification(ProductQueryParams queryParams)
-            : base(ProductSpecificationsHelper.GetCriteria(queryParams))
+        switch (queryParams.Sort)
         {
-            AddInclude(P => P.ProductBrand);
-            AddInclude(P => P.ProductType);
+            case ProductSortingOptions.NameAsc:
+                AddOrderBy(P => P.Name);
+                break;
+            case ProductSortingOptions.NameDesc:
+                AddOrderByDescending(p => p.Name);
+                break;
 
-            switch (queryParams.sort)
-            {
-                case ProductSortingOptions.NameAsc:
-                    AddOrderBy(P => P.Name);
-                    break;
-                case ProductSortingOptions.NameDesc:
-                    AddOrderByDescending(p => p.Name);
-                    break;
-
-                case ProductSortingOptions.PriceAsc:
-                    AddOrderBy(P => P.Price);
-                    break;
-                case ProductSortingOptions.PriceDesc:
-                    AddOrderByDescending(P => P.Price);
-                    break;
-                default:
-                    AddOrderBy(P => P.Id);
-                    break;
-            }
-
-            ApplyPagination(queryParams.PageSize, queryParams.PageIndex);
+            case ProductSortingOptions.PriceAsc:
+                AddOrderBy(P => P.Price);
+                break;
+            case ProductSortingOptions.PriceDesc:
+                AddOrderByDescending(P => P.Price);
+                break;
+            default:
+                AddOrderBy(P => P.Id);
+                break;
         }
 
-        public ProductWithTypeAndBrandSpecification(int id)
-            : base(X => X.Id == id)
-        {
-            AddInclude(P => P.ProductBrand);
-            AddInclude(P => P.ProductType);
-        }
+        ApplyPagination(queryParams.PageSize, queryParams.PageIndex);
     }
+
+    public ProductWithTypeAndBrandSpecification(int id)
+        : base(X => X.Id == id)
+    {
+        AddInclude(P => P.Category);
+    }
+ }
+
+
 }

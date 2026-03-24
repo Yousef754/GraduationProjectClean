@@ -10,29 +10,15 @@ using static System.Net.WebRequestMethods;
 
 namespace ECommerce.Services.MappingProfiles
 {
-    internal class ProductProfile : Profile
+    public class ProductProfile : Profile
     {
         public ProductProfile()
         {
-            CreateMap<ProductBrand, BrandDTO>();
-            CreateMap<Product, ProductDTO>()
-                .ForMember(
-                    dest => dest.ProductBrand,
-                    opt => opt.MapFrom(src => src.ProductBrand.Name)
-                )
-                .ForMember(
-                    dest => dest.ProductType,
-                    opt => opt.MapFrom(src => src.ProductType.Name)
-                )
-                .ForMember(
-                    dest => dest.PictureUrl,
-                    opt => opt.MapFrom<ProductPictureUrlResolver>()
-                );
+            CreateMap<Product, ProductReturnDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name));
 
-            //.ForMember(dest=>dest.PictureUrl,
-            //       opt=>opt.MapFrom<>();
-
-            CreateMap<ProductType, TypeDTO>();
+            CreateMap<CreateProductDto, Product>();
+            CreateMap<UpdateProductDto, Product>();
         }
     }
 }

@@ -9,20 +9,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECommerce.Persistence.Data.Configurations
 {
-    internal class OrderItemConfigurations : IEntityTypeConfiguration<OrderItem>
+    public class OrderItemConfigurations : IEntityTypeConfiguration<OrderItem>
     {
         public void Configure(EntityTypeBuilder<OrderItem> builder)
         {
-            builder.Property(X => X.Price).HasColumnType("decimal(8,2)");
+            builder.Property(i => i.Price)
+                .HasColumnType("decimal(18,2)");
 
-            builder.OwnsOne(
-                X => X.Product,
-                OE =>
-                {
-                    OE.Property(X => X.ProductName).HasMaxLength(100);
-                    OE.Property(X => X.PictureUrl).HasMaxLength(100);
-                }
-            );
+            builder.OwnsOne(i => i.Product, p =>
+            {
+                p.Property(p => p.ProductName)
+                    .IsRequired();
+
+                p.Property(p => p.PictureUrl)
+                    .IsRequired();
+            });
         }
     }
 }

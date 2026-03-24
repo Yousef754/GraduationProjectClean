@@ -6,12 +6,15 @@ using System.Threading.Tasks;
 using AutoMapper;
 using ECommerce.Domain.Contracts;
 using ECommerce.Domain.Entities.ProductModule;
+using ECommerce.Persistence;
 using ECommerce.Services.Abstraction;
 using ECommerce.Services.Exceptions;
 using ECommerce.Services.Specifications.ProductSpecifications;
 using ECommerce.Shared;
 using ECommerce.Shared.CommonResponses;
 using ECommerce.Shared.DTOs.ProductDTOs;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace ECommerce.Services
 {
@@ -26,61 +29,120 @@ namespace ECommerce.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<BrandDTO>> GetAllBrandsAsync()
+        // جلب المنتجات مع Pagination + Filtering + Sorting
+        public async Task<PaginatedResult<ProductReturnDto>> GetAllProductsAsync(ProductQueryParams queryParams)
         {
-            var Brands = await _unitOfWork.GetRepository<ProductBrand, int>().GetAllAsync();
+            // 1️⃣ انشأ Specification للفلترة + Pagination + Sorting
+            var spec = new ProductWithTypeAndBrandSpecification(queryParams);
 
-            return _mapper.Map<IEnumerable<BrandDTO>>(Brands);
-        }
-
-        public async Task<PaginatedResult<ProductDTO>> GetAllProductsAsync(
-            ProductQueryParams queryParams
-        )
-        {
+            // 2️⃣ جلب الـ Repository
             var repo = _unitOfWork.GetRepository<Product, int>();
 
+            // 3️⃣ جلب IQueryable مباشرة من Repository
+            var queryable = repo.GetAllAsQueryable();
 
+            // 4️⃣ تطبيق الـ Specification
+            var query = SpecificationEvaluator.CreateQuery<Product, int>(queryable, spec);
 
+            // 5️⃣ احسب العدد الكلي قبل Pagination
+            //var totalCount = await query.CountAsync();
 
+            // 6️⃣ جلب العناصر بعد Pagination
+            var products = await query.ToListAsync();
 
+            // 7️⃣ Mapping من Entity → DTO
+            var data = _mapper.Map<IEnumerable<ProductReturnDto>>(products);
 
-
-            var spec = new ProductWithTypeAndBrandSpecification(queryParams);
-            var products = await repo.GetAllAsync(spec);
-
-            var productWithCountSpec = new ProductWithCountSpecifications(queryParams);
-            var TotalCount = await repo.CountAsync(productWithCountSpec);
-            var DataToReturn = _mapper.Map<IEnumerable<ProductDTO>>(products);
-
-            var countOfReturnedData = DataToReturn.Count();
-
-            return new PaginatedResult<ProductDTO>(
+            // 8️⃣ ارجع PaginatedResult
+            return new PaginatedResult<ProductReturnDto>(
                 queryParams.PageIndex,
-                countOfReturnedData,
-                TotalCount,
-                DataToReturn
+                queryParams.PageSize,
+                
+                data
             );
         }
 
-        public async Task<IEnumerable<TypeDTO>> GetAllTypesAsync()
-        {
-            var types = await _unitOfWork.GetRepository<ProductType, int>().GetAllAsync();
-
-            return _mapper.Map<IEnumerable<TypeDTO>>(types);
-        }
-
-        public async Task<Result<ProductDTO>> GetProductByIdAsync(int id)
+        // جلب منتج واحد حسب Id
+        public async Task<ProductReturnDto?> GetProductByIdAsync(int id)
         {
             var spec = new ProductWithTypeAndBrandSpecification(id);
-            var product = await _unitOfWork.GetRepository<Product, int>().GetByIdAsync(spec);
+            var repo = _unitOfWork.GetRepository<Product, int>();
 
-            if (product is null)
-                return Error.NotFound(
-                    $"Product.NotFound",
-                    $"Product with this Id:{id} is not found"
-                );
+            var product = await repo.GetByIdAsync(spec);
+            if (product == null) return null;
 
-            return _mapper.Map<ProductDTO>(product);
+            return _mapper.Map<ProductReturnDto>(product);
         }
+
+        // إنشاء منتج جديد
+        public async Task<ProductReturnDto> CreateProductAsync(CreateProductDto dto)
+        {
+            var repo = _unitOfWork.GetRepository<Product, int>();
+            var product = _mapper.Map<Product>(dto);
+
+            await repo.AddAsync(product);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<ProductReturnDto>(product);
+        }
+
+        // تحديث منتج موجود
+        public async Task<bool> UpdateProductAsync(int id, UpdateProductDto dto)
+        {
+            // جلب الـ entity من DbContext عبر Repository
+            var repo = _unitOfWork.GetRepository<Product, int>();
+            var product = await repo.GetByIdAsync(id);
+
+            if (product == null)
+                return false;
+
+            // Partial update: نغير بس الحقول اللي موجودة في DTO
+            if (dto.Name != null)
+                product.Name = dto.Name;
+
+            if (dto.Price.HasValue)
+                product.Price = dto.Price.Value;
+
+            if (dto.Quantity.HasValue)
+                product.Quantity = dto.Quantity.Value;
+
+            // إذا كان الـ entity detached، استخدم Update
+            // إذا جاي من GetByIdAsync من نفس DbContext، مش محتاج
+            // repo.Update(product); // ← ممكن تشيلها
+
+            // احفظ التغييرات في DbContext
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
+        // حذف منتج
+        public async Task<bool> DeleteProductAsync(int id)
+        {
+            var repo = _unitOfWork.GetRepository<Product, int>();
+            var product = await repo.GetByIdAsync(id);
+            if (product == null) return false;
+
+            repo.Delete(product);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        public async Task<bool> UpdateProductImageAsync(int productId, string pictureUrl)
+        {
+            var repo = _unitOfWork.GetRepository<Product, int>();
+            var product = await repo.GetByIdAsync(productId);
+
+            if (product == null)
+                return false;
+
+            product.PictureUrl = pictureUrl;
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
+
     }
 }

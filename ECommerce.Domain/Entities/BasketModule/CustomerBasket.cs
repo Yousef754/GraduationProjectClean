@@ -8,14 +8,13 @@ namespace ECommerce.Domain.Entities.BasketModule
 {
     public class CustomerBasket
     {
-        public string Id { get; set; } = default!; 
+        public string Id { get; set; } = default!;          // ممكن يكون UserId أو BasketId
+        public List<BasketItem> Items { get; set; } = new();
 
-        public int? DeliveryMethodId { get; set; }
-        public decimal ShippingPrice { get; set; }
-
-        public string? PaymentIntentID { get; set; }
-
-        public string? ClientSecret { get; set; }
-        public ICollection<BasketItem> Items { get; set; } = [];
+        // اختياري حسب مشروعك:
+        public int? DeliveryMethodId { get; set; }          // لو عايز تختار طريقة توصيل
+        public decimal ShippingPrice { get; set; }          // سعر التوصيل
+        public string? PaymentIntentID { get; set; }        // Stripe أو بوابة الدفع
+        public string? ClientSecret { get; set; }           // للواجهة الأمامية لإكمال الدفع
     }
 }

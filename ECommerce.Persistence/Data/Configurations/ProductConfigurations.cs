@@ -26,13 +26,13 @@ namespace ECommerce.Persistence.Data.Configurations
                     .HasPrecision(18, 2);
 
 
-            builder.HasOne(P=>P.ProductBrand)
-                .WithMany()
-                .HasForeignKey(P=>P.ProductBrandId);
+            //builder.HasOne(P=>P.ProductBrand)
+            //    .WithMany()
+            //    .HasForeignKey(P=>P.ProductBrandId);
 
-            builder.HasOne(P => P.ProductType)
-                .WithMany()
-                .HasForeignKey(P => P.ProductTypeId);
+            //builder.HasOne(P => P.ProductType)
+            //    .WithMany()
+            //    .HasForeignKey(P => P.ProductTypeId);
         }
     }
 }

@@ -13,12 +13,11 @@ namespace ECommerce.Services.Specifications.ProductSpecifications
     {
         public static Expression<Func<Product, bool>> GetCriteria(ProductQueryParams queryParams)
         {
-            return P =>
-                (!queryParams.brandId.HasValue || P.ProductBrandId == queryParams.brandId.Value)
-                && (!queryParams.typeId.HasValue || P.ProductTypeId == queryParams.typeId.Value)
-                && (
-                    string.IsNullOrEmpty(queryParams.search)
-                    || P.Name.ToLower().Contains(queryParams.search.ToLower())
+            return p =>
+                (!queryParams.CategoryId.HasValue || p.CategoryId == queryParams.CategoryId.Value)
+                && (string.IsNullOrEmpty(queryParams.Search)
+                    || p.Name.ToLower().Contains(queryParams.Search.ToLower())
+                    || p.Description.ToLower().Contains(queryParams.Search.ToLower())
                 );
         }
     }

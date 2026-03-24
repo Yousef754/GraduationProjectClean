@@ -1,4 +1,3 @@
-using System.Text;
 using ECommerce.API.CustomMiddlewares;
 using ECommerce.API.Extensions;
 using ECommerce.API.Factories;
@@ -12,6 +11,7 @@ using ECommerce.Persistence.Repositories;
 using ECommerce.Services;
 using ECommerce.Services.Abstraction;
 using ECommerce.Services.MappingProfiles;
+using ECommerce.Services.Specifications;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +20,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Text;
 
 namespace ECommerce.API
 {
@@ -88,27 +89,31 @@ namespace ECommerce.API
                 );
             });
 
-            builder.Services.AddKeyedScoped<IDataIntializer, DataIntializer>("Default");
-            builder.Services.AddKeyedScoped<IDataIntializer, IdentityDataIntializer>("Identity");
+            //builder.Services.AddKeyedScoped<IDataIntializer, DataIntializer>("Default");
+            //builder.Services.AddKeyedScoped<IDataIntializer, IdentityDataIntializer>("Identity");
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddAutoMapper(typeof(ServiceAssemblyReference).Assembly);
 
-            builder.Services.AddScoped<IProductService, ProductService>();
+            //builder.Services.AddScoped<IProductService, ProductService>();
+
 
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-            {
-                return ConnectionMultiplexer.Connect(
-                    builder.Configuration.GetConnectionString("RedisConnection")!
-                );
-            });
+            ConnectionMultiplexer.Connect(
+             new ConfigurationOptions
+             {
+                 EndPoints = { "localhost:6379" },
+                 AbortOnConnectFail = false
+             }
+             )
+             );
 
             builder.Services.AddScoped<IBasketRepository, BasketRepository>();
             builder.Services.AddScoped<IBasketService, BasketService>();
             builder.Services.AddScoped<ICacheRepository, CacheRepository>();
             builder.Services.AddScoped<ICacheService, CacheService>();
-
+            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory =
@@ -132,6 +137,10 @@ namespace ECommerce.API
                 .AddEntityFrameworkStores<StoreIdentityDbContext>();
 
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+            builder.Services.AddAutoMapper(typeof(OrderProfile));   
 
             builder
                 .Services.AddAuthentication(options =>
@@ -155,19 +164,19 @@ namespace ECommerce.API
                     };
                 });
 
-            builder.Services.AddScoped<IOrderService, OrderService>();
-            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            //builder.Services.AddScoped<IOrderService, OrderService>();
+            //builder.Services.AddScoped<IPaymentService, PaymentService>();
             #endregion
 
-
+            builder.Services.AddScoped<IProductService, ProductService>();
 
             var app = builder.Build();
 
-            await app.MigrateDataBaseAsync();
-            await app.MigratIdentityeDataBaseAsync();
+            //await app.MigrateDataBaseAsync();
+            //await app.MigratIdentityeDataBaseAsync();
 
-            await app.SeedDataAsync();
-            await app.SeedIdentityDataAsync();
+            //await app.SeedDataAsync();
+            //await app.SeedIdentityDataAsync();
 
             #region Configure PipeLine [Middlewares]
             #region Custom Middleware

@@ -12,10 +12,15 @@ namespace ECommerce.Domain.Entities.OrderModule
 
         public string LastName { get; set; } = default!;
 
+        public string Phone { get; set; } = default!;
+
+
         public string Street { get; set; } = default!;
 
         public string City { get; set; } = default!;
 
         public string Country { get; set; } = default!;
+
+
     }
 }

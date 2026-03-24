@@ -5,64 +5,64 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.API.Extensions
 {
-    public static class WebApplicationRegister
-    {
-        public static async Task<WebApplication> MigrateDataBaseAsync(this WebApplication app)
-        {
-            await using var scope = app.Services.CreateAsyncScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
+    //public static class WebApplicationRegister
+    //{
+    //    public static async Task<WebApplication> MigrateDataBaseAsync(this WebApplication app)
+    //    {
+    //        await using var scope = app.Services.CreateAsyncScope();
+    //        var dbContext = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
 
-            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+    //        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
 
-            if (pendingMigrations.Any())
-            {
-                dbContext.Database.Migrate();
-            }
+    //        if (pendingMigrations.Any())
+    //        {
+    //            dbContext.Database.Migrate();
+    //        }
 
-            return app;
-        }
+    //        return app;
+    //    }
 
-        public static async Task<WebApplication> MigratIdentityeDataBaseAsync(
-            this WebApplication app
-        )
-        {
-            await using var scope = app.Services.CreateAsyncScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<StoreIdentityDbContext>();
+    //    public static async Task<WebApplication> MigratIdentityeDataBaseAsync(
+    //        this WebApplication app
+    //    )
+    //    {
+    //        await using var scope = app.Services.CreateAsyncScope();
+    //        var dbContext = scope.ServiceProvider.GetRequiredService<StoreIdentityDbContext>();
 
-            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+    //        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
 
-            if (pendingMigrations.Any())
-            {
-                dbContext.Database.Migrate();
-            }
+    //        if (pendingMigrations.Any())
+    //        {
+    //            dbContext.Database.Migrate();
+    //        }
 
-            return app;
-        }
+    //        return app;
+    //    }
 
-        public static async Task<WebApplication> SeedDataAsync(this WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
+    //    public static async Task<WebApplication> SeedDataAsync(this WebApplication app)
+    //    {
+    //        using var scope = app.Services.CreateScope();
 
-            var dataIntializer = scope.ServiceProvider.GetRequiredKeyedService<IDataIntializer>(
-                "Default"
-            );
+    //        var dataIntializer = scope.ServiceProvider.GetRequiredKeyedService<IDataIntializer>(
+    //            "Default"
+    //        );
 
-            await dataIntializer.IntializeAsync();
+    //        await dataIntializer.IntializeAsync();
 
-            return app;
-        }
+    //        return app;
+    //    }
 
-        public static async Task<WebApplication> SeedIdentityDataAsync(this WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
+    //    public static async Task<WebApplication> SeedIdentityDataAsync(this WebApplication app)
+    //    {
+    //        using var scope = app.Services.CreateScope();
 
-            var dataIntializer = scope.ServiceProvider.GetRequiredKeyedService<IDataIntializer>(
-                "Identity"
-            );
+    //        var dataIntializer = scope.ServiceProvider.GetRequiredKeyedService<IDataIntializer>(
+    //            "Identity"
+    //        );
 
-            await dataIntializer.IntializeAsync();
+    //        await dataIntializer.IntializeAsync();
 
-            return app;
-        }
-    }
+    //        return app;
+    //    }
+    //}
 }
