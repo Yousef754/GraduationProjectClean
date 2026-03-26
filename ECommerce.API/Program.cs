@@ -1,4 +1,4 @@
-using ECommerce.API.CustomMiddlewares;
+﻿using ECommerce.API.CustomMiddlewares;
 using ECommerce.API.Extensions;
 using ECommerce.API.Factories;
 using ECommerce.Domain.Contracts;
@@ -82,12 +82,37 @@ namespace ECommerce.API
                 );
             });
 
+            //builder.Services.AddDbContext<StoreDbContext>(options =>
+            //{
+            //    options.UseSqlServer(
+            //        builder.Configuration.GetConnectionString("DefaultConnection")
+            //    );
+            //});
+
             builder.Services.AddDbContext<StoreDbContext>(options =>
             {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection")
                 );
             });
+
+            // DbContext الخاص بالـ Identity يشترك في نفس الـ DB
+            builder.Services.AddDbContext<StoreIdentityDbContext>(options =>
+            {
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection")
+                );
+            });
+
+            // إعداد الـ Identity
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<StoreIdentityDbContext>()
+                .AddDefaultTokenProviders();
+
+            //builder
+            //   .Services.AddIdentityCore<ApplicationUser>()
+            //   .AddRoles<IdentityRole>()
+            //   .AddEntityFrameworkStores<StoreIdentityDbContext>();
 
             //builder.Services.AddKeyedScoped<IDataIntializer, DataIntializer>("Default");
             //builder.Services.AddKeyedScoped<IDataIntializer, IdentityDataIntializer>("Identity");
@@ -109,6 +134,20 @@ namespace ECommerce.API
              )
              );
 
+            //var redisConnection = builder.Configuration["RedisConnection"];
+            //if (!string.IsNullOrWhiteSpace(redisConnection))
+            //{
+            //    builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+            //        ConnectionMultiplexer.Connect(
+            //            new ConfigurationOptions
+            //            {
+            //                EndPoints = { redisConnection },
+            //                AbortOnConnectFail = false
+            //            }
+            //        )
+            //    );
+            //}
+
             builder.Services.AddScoped<IBasketRepository, BasketRepository>();
             builder.Services.AddScoped<IBasketService, BasketService>();
             builder.Services.AddScoped<ICacheRepository, CacheRepository>();
@@ -120,21 +159,15 @@ namespace ECommerce.API
                     ApiResponseFactory.GenerateApiValidationResponse;
             });
 
-            builder.Services.AddDbContext<StoreIdentityDbContext>(Options =>
-            {
-                Options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("IdentityConnection")
-                );
-            });
-
+            
             //builder
             //    .Services.AddIdentity<ApplicationUser, IdentityRole>()
             //    .AddEntityFrameworkStores<StoreIdentityDbContext>();
 
-            builder
-                .Services.AddIdentityCore<ApplicationUser>()
-                .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<StoreIdentityDbContext>();
+            //builder
+            //    .Services.AddIdentityCore<ApplicationUser>()
+            //    .AddRoles<IdentityRole>()
+            //    .AddEntityFrameworkStores<StoreIdentityDbContext>();
 
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
@@ -208,17 +241,21 @@ namespace ECommerce.API
 
 
             app.UseMiddleware<ExceptionHandlerMiddleware>();
+            app.UseRouting();
+            app.UseSwagger();
+            
+
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
+
                 app.UseSwaggerUI(options =>
                 {
                     options.DisplayRequestDuration();
                     options.EnableFilter();
                     options.DocExpansion(DocExpansion.None);
                 });
-            }
 
+            }
             app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseCors("DevelopmentPolicy");

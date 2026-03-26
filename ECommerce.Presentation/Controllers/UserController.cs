@@ -1,8 +1,10 @@
 ﻿using ECommerce.Domain.Contracts;
 using ECommerce.Domain.Entities.AppUser;
+using ECommerce.Domain.Entities.IdentityModule;
 using ECommerce.Services.Specifications;
 using ECommerce.Shared.DTOs.AppUserDTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -21,33 +23,59 @@ namespace ECommerce.Presentation.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly IUserService _userService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
-        private readonly IUnitOfWork _unitOfWork;
 
-        public UserController(IUserService userService, IConfiguration configuration, IUnitOfWork unitOfWork)
+        public UserController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IConfiguration configuration)
         {
-            _userService = userService;
+            _userManager = userManager;
+            _roleManager = roleManager;
             _configuration = configuration;
-            _unitOfWork = unitOfWork;
         }
 
         // ----------------- Register -----------------
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterUserDto dto)
         {
-            var user = await _userService.RegisterAsync(dto);
-            return Ok(new { user.Id, user.Email, user.Role });
+            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingUser != null)
+                return BadRequest("Email already registered");
+
+            var user = new ApplicationUser
+            {
+                Email = dto.Email,
+                UserName = dto.Email,
+                DisplayName = dto.FullName // لو مش عايز FullName، احذفه
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            // إضافة المستخدم إلى الدور "User" بشكل افتراضي
+            if (!await _roleManager.RoleExistsAsync("User"))
+                await _roleManager.CreateAsync(new IdentityRole("User"));
+
+            await _userManager.AddToRoleAsync(user, "User");
+
+            return Ok(new { user.Id, user.Email, Role = "User" });
         }
 
         // ----------------- Login -----------------
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginUserDto dto)
         {
-            var user = await _userService.LoginAsync(dto);
-            if (user == null) return Unauthorized("Invalid Email or Password");
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+                return Unauthorized("Invalid Email or Password");
 
-            // إنشاء JWT Token
+            var roles = await _userManager.GetRolesAsync(user);
+            var userRole = roles.FirstOrDefault() ?? "User";
+
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["JWTOptions:SecretKey"]);
 
@@ -55,10 +83,10 @@ namespace ECommerce.Presentation.Controllers
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, userRole)
+            }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = _configuration["JWTOptions:Issuer"],
                 Audience = _configuration["JWTOptions:Audience"],
@@ -72,7 +100,7 @@ namespace ECommerce.Presentation.Controllers
             {
                 user.Id,
                 user.Email,
-                user.Role,
+                Role = userRole,
                 Token = jwtToken
             });
         }
@@ -80,15 +108,20 @@ namespace ECommerce.Presentation.Controllers
         // ----------------- Change Role -----------------
         [HttpPut("{userId}/role")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ChangeRole(int userId, [FromBody] string newRole)
+        public async Task<IActionResult> ChangeRole(string userId, [FromBody] string newRole)
         {
-            // جلب الـ currentUser من الـ JWT
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            var currentUser = await _unitOfWork.Users.GetByEmailAsync(email);
-            if (currentUser == null) return Unauthorized();
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound("User not found");
 
-            var user = await _userService.ChangeUserRoleAsync(userId, newRole, currentUser);
-            return Ok(new { user.Id, user.Email, user.Role });
+            if (!await _roleManager.RoleExistsAsync(newRole))
+                await _roleManager.CreateAsync(new IdentityRole(newRole));
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            await _userManager.AddToRoleAsync(user, newRole);
+
+            return Ok(new { user.Id, user.Email, Role = newRole });
         }
     }
 }

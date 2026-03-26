@@ -12,7 +12,7 @@ namespace ECommerce.Persistence.Repositories
     {
         private readonly IDatabase _database;
 
-        public CacheRepository(IConnectionMultiplexer connection)
+        public CacheRepository(IConnectionMultiplexer? connection)
         {
             if (connection == null) throw new ArgumentNullException(nameof(connection));
             _database = connection.GetDatabase();

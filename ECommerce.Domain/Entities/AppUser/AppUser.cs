@@ -11,6 +11,9 @@ namespace ECommerce.Domain.Entities.AppUser
         
         public string Email { get; set; } = default!;
         public string PasswordHash { get; set; } = default!;
+
+        public string FullName { get; set; } = default!; // اضيف هنا الاسم الكامل
+
         public string Role { get; set; } = "User"; // User أو Admin
     }
 }

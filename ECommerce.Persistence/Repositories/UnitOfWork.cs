@@ -20,7 +20,7 @@ namespace ECommerce.Persistence.Repositories
             _dbContext = dbContext;
 
             // هنا بنجهز الـ Users Repository مباشرة
-            Users = new UserRepository(_dbContext);
+            //Users = new UserRepository(_dbContext);
         }
 
         public IUserRepository Users { get;  set; }

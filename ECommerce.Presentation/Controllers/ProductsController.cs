@@ -29,7 +29,7 @@ namespace ECommerce.Presentation.Controllers
 
         // GET: api/Product
         [HttpGet("All_Products")]
-        public async Task<ActionResult<PaginatedResult<ProductReturnDto>>> GetAllProducts([FromQuery] ProductQueryParams queryParams)
+        public async Task<ActionResult<PaginatedResult<ProductReturnDto>>> GetAllProducts([FromQuery] ProductQueryParams? queryParams)
         {
             var result = await _productService.GetAllProductsAsync(queryParams);
             return Ok(result);
