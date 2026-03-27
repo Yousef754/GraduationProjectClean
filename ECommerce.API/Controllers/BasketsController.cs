@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ECommerce.Presentation.Controllers
+namespace ECommerce.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

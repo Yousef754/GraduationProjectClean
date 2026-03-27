@@ -125,14 +125,15 @@ namespace ECommerce.API
 
 
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-            ConnectionMultiplexer.Connect(
-             new ConfigurationOptions
-             {
-                 EndPoints = { "localhost:6379" },
-                 AbortOnConnectFail = false
-             }
-             )
-             );
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var connectionString = config.GetConnectionString("Redis");
+
+                var options = ConfigurationOptions.Parse(connectionString);
+                options.AbortOnConnectFail = false;
+
+                return ConnectionMultiplexer.Connect(options);
+            });
 
             //var redisConnection = builder.Configuration["RedisConnection"];
             //if (!string.IsNullOrWhiteSpace(redisConnection))
@@ -153,6 +154,7 @@ namespace ECommerce.API
             builder.Services.AddScoped<ICacheRepository, CacheRepository>();
             builder.Services.AddScoped<ICacheService, CacheService>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory =
@@ -205,6 +207,15 @@ namespace ECommerce.API
 
             var app = builder.Build();
 
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+
+                var identityInitializer = services.GetRequiredService<IDataIntializer>();
+                await identityInitializer.IntializeAsync();
+            }
+
             //await app.MigrateDataBaseAsync();
             //await app.MigratIdentityeDataBaseAsync();
 
@@ -243,17 +254,18 @@ namespace ECommerce.API
             app.UseMiddleware<ExceptionHandlerMiddleware>();
             app.UseRouting();
             app.UseSwagger();
-            
+
+            app.UseSwaggerUI(options =>
+            {
+                options.DisplayRequestDuration();
+                options.EnableFilter();
+                options.DocExpansion(DocExpansion.None);
+            });
 
             if (app.Environment.IsDevelopment())
             {
 
-                app.UseSwaggerUI(options =>
-                {
-                    options.DisplayRequestDuration();
-                    options.EnableFilter();
-                    options.DocExpansion(DocExpansion.None);
-                });
+                
 
             }
             app.UseStaticFiles();

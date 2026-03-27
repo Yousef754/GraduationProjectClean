@@ -19,8 +19,7 @@ namespace ECommerce.Persistence.IdentityData.DataSeed
         public IdentityDataIntializer(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            ILogger<IdentityDataIntializer> logger
-        )
+            ILogger<IdentityDataIntializer> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -31,39 +30,82 @@ namespace ECommerce.Persistence.IdentityData.DataSeed
         {
             try
             {
-                if (!_roleManager.Roles.Any())
+                _logger.LogInformation("Identity Seeding Started");
+
+                // =======================
+                // 1️⃣ Roles Seed
+                // =======================
+                if (!await _roleManager.RoleExistsAsync("Admin"))
                 {
                     await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                }
+
+                if (!await _roleManager.RoleExistsAsync("SuperAdmin"))
+                {
                     await _roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
                 }
 
-                if (!_userManager.Users.Any())
+                // =======================
+                // 2️⃣ User 1 (Omar)
+                // =======================
+                var user1 = await _userManager.FindByEmailAsync("OmarAhmed@gmail.com");
+
+                if (user1 == null)
                 {
-                    var User01 = new ApplicationUser
+                    user1 = new ApplicationUser
                     {
                         DisplayName = "Omar Ahmed",
                         UserName = "OmarAhmed",
                         Email = "OmarAhmed@gmail.com",
                         PhoneNumber = "01070965586",
+                        EmailConfirmed = true
                     };
-                    var User02 = new ApplicationUser
+
+                    var result = await _userManager.CreateAsync(user1, "P@ssw0rd");
+
+                    if (result.Succeeded)
                     {
-                        DisplayName = "Farida Ahmed",
-                        UserName = "FaridaAhmed",
-                        Email = "FaridaAhmed@gmail.com",
+                        await _userManager.AddToRoleAsync(user1, "SuperAdmin");
+                    }
+                    else
+                    {
+                        _logger.LogError("Failed to create Omar user");
+                    }
+                }
+
+                // =======================
+                // 3️⃣ User 2 (Farida)
+                // =======================
+                var user2 = await _userManager.FindByEmailAsync("userone@gmail.com");
+
+                if (user2 == null)
+                {
+                    user2 = new ApplicationUser
+                    {
+                        DisplayName = "user ",
+                        UserName = "user",
+                        Email = "userone@gmail.com",
                         PhoneNumber = "01070865586",
+                        EmailConfirmed = true
                     };
 
-                    await _userManager.CreateAsync(User01, "P@ssw0rd");
-                    await _userManager.CreateAsync(User02, "P@ssw0rd");
+                    var result = await _userManager.CreateAsync(user2, "P@ssw0rd");
 
-                    await _userManager.AddToRoleAsync(User01, "SuperAdmin");
-                    await _userManager.AddToRoleAsync(User02, "Admin");
+                    if (result.Succeeded)
+                    {
+                        await _userManager.AddToRoleAsync(user2, "Admin");
+                    }
+                    else
+                    {
+                        _logger.LogError("Failed to create user1 user");
+                    }
                 }
+
+                _logger.LogInformation("Identity Seeding Finished Successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error while Seeding Database,{ex.Message} happened");
+                _logger.LogError(ex, "Error while Seeding Identity Database");
             }
         }
     }

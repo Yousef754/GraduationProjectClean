@@ -3,6 +3,7 @@ using ECommerce.Domain.Entities.IdentityModule;
 using ECommerce.Domain.Entities.OrderModule;
 using ECommerce.Domain.Entities.ProductModule;
 using ECommerce.Persistence.Data.DataSeed;
+using ECommerce.Persistence.IdentityData.DataSeed;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;

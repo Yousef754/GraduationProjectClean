@@ -9,7 +9,7 @@ using ECommerce.Shared.DTOs.OrderDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ECommerce.Presentation.Controllers
+namespace ECommerce.API.Controllers
 {
     [Authorize]
     [ApiController]

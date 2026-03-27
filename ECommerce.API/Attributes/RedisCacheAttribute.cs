@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECommerce.Presentation.Attributes
+namespace ECommerce.API.Attributes
 {
     public class RedisCacheAttribute : ActionFilterAttribute
     {

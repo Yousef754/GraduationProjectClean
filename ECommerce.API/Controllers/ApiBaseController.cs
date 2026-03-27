@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace ECommerce.Presentation.Controllers
+namespace ECommerce.API.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]

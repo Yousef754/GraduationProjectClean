@@ -8,7 +8,7 @@ using ECommerce.Shared.DTOs.BasketDTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace ECommerce.Presentation.Controllers
+namespace ECommerce.API.Controllers
 {
     public class PaymentsController : ApiBaseController
     {
