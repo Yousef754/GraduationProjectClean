@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ECommerce.Domain.Contracts;
 using StackExchange.Redis;
+using System.Text.Json;
 
 namespace ECommerce.Persistence.Repositories
 {
@@ -12,9 +13,8 @@ namespace ECommerce.Persistence.Repositories
     {
         private readonly IDatabase _database;
 
-        public CacheRepository(IConnectionMultiplexer? connection)
+        public CacheRepository(IConnectionMultiplexer connection)
         {
-            if (connection == null) throw new ArgumentNullException(nameof(connection));
             _database = connection.GetDatabase();
         }
 
@@ -23,20 +23,24 @@ namespace ECommerce.Persistence.Repositories
             if (string.IsNullOrEmpty(cacheKey)) return null;
 
             var cacheValue = await _database.StringGetAsync(cacheKey);
-            return cacheValue.IsNullOrEmpty ? null : cacheValue.ToString();
+
+            if (cacheValue.IsNullOrEmpty) return null;
+
+            return cacheValue!;
         }
 
-        public async Task SetAsync(string cacheKey, string cacheValue, TimeSpan timeToLive)
+        public async Task SetAsync(string cacheKey, string value, TimeSpan timeToLive)
         {
-            if (string.IsNullOrEmpty(cacheKey)) throw new ArgumentNullException(nameof(cacheKey));
-            if (cacheValue == null) throw new ArgumentNullException(nameof(cacheValue));
+            if (string.IsNullOrEmpty(cacheKey))
+                throw new ArgumentNullException(nameof(cacheKey));
 
-            await _database.StringSetAsync(cacheKey, cacheValue, timeToLive);
+            await _database.StringSetAsync(cacheKey, value, timeToLive);
         }
 
         public async Task RemoveAsync(string cacheKey)
         {
-            await _database.KeyDeleteAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cacheKey))
+                await _database.KeyDeleteAsync(cacheKey);
         }
     }
 }

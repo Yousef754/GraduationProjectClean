@@ -13,20 +13,14 @@ namespace ECommerce.Services.MappingProfiles
     {
         public OrderProfile()
         {
-            // Mapping for addresses
-            CreateMap<AddressDTO, OrderAddress>().ReverseMap();
-
-            // Mapping for orders
             CreateMap<Order, OrderToReturnDTO>()
-                .ForMember(dest => dest.ShipToAddress, opt => opt.MapFrom(src => src.Address))
-                .ForMember(dest => dest.DeliveryMethod, opt => opt.MapFrom(src => src.DeliveryMethod));
+                .ForMember(dest => dest.DeliveryMethod, opt => opt.MapFrom(src => src.DeliveryMethod))
+                .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.GetTotal()));
 
-            // Mapping for order items
             CreateMap<OrderItem, OrderItemDTO>()
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.ProductName))
                 .ForMember(dest => dest.PictureUrl, opt => opt.MapFrom<OrderItemPictureUrlResolver>());
 
-            // Mapping for delivery methods
             CreateMap<DeliveryMethod, DeliveryMethodDTO>();
         }
     }

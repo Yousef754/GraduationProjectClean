@@ -13,7 +13,7 @@ namespace ECommerce.Persistence.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            builder.Property(o => o.UserEmail)
+            builder.Property(o => o.UserId)
                 .IsRequired();
 
             builder.Property(o => o.SubTotal)
@@ -23,17 +23,17 @@ namespace ECommerce.Persistence.Data.Configurations
                 .HasConversion<string>(); // 👈 يخزنه كـ string
 
             // Address (Owned Type)
-            builder.OwnsOne(o => o.Address, a =>
-            {
-                a.WithOwner();
+            //builder.OwnsOne(o => o.Address, a =>
+            //{
+            //    a.WithOwner();
 
-                a.Property(a => a.FirstName).IsRequired().HasMaxLength(100);
-                a.Property(a => a.LastName).IsRequired().HasMaxLength(100);
-                a.Property(a => a.Street).IsRequired();
-                a.Property(a => a.City).IsRequired();
-                a.Property(a => a.Country).IsRequired();
-                a.Property(a => a.Phone).IsRequired();
-            });
+            //    a.Property(a => a.FirstName).IsRequired().HasMaxLength(100);
+            //    a.Property(a => a.LastName).IsRequired().HasMaxLength(100);
+            //    a.Property(a => a.Street).IsRequired();
+            //    a.Property(a => a.City).IsRequired();
+            //    a.Property(a => a.Country).IsRequired();
+            //    a.Property(a => a.Phone).IsRequired();
+            //});
 
             // العلاقة مع DeliveryMethod
             builder.HasOne(o => o.DeliveryMethod)

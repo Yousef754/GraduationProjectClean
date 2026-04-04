@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ECommerce.Persistence\ECommerce.Persistence.csproj" />
+    <ProjectReference Include="..\ECommerce.Services\ECommerce.Services.csproj" />
   </ItemGroup>
 
 </Project>

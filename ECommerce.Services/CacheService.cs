@@ -12,25 +12,38 @@ namespace ECommerce.Services
     public class CacheService : ICacheService
     {
         private readonly ICacheRepository _cacheRepository;
+        private readonly JsonSerializerOptions _options;
 
         public CacheService(ICacheRepository cacheRepository)
         {
             _cacheRepository = cacheRepository;
+
+            _options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
         }
 
-        public async Task<string?> GetAsync(string cacheKey)
+        public async Task<T?> GetAsync<T>(string cacheKey)
         {
-            return await _cacheRepository.GetAsync(cacheKey);
+            var data = await _cacheRepository.GetAsync(cacheKey);
+
+            if (string.IsNullOrEmpty(data))
+                return default;
+
+            return JsonSerializer.Deserialize<T>(data, _options);
         }
 
-        public async Task SetAsync(string cacheKey, object cacheValue, TimeSpan TimeToLive)
+        public async Task SetAsync<T>(string cacheKey, T cacheValue, TimeSpan timeToLive)
         {
-            var value = JsonSerializer.Serialize(
-                cacheValue,
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-            );
+            var value = JsonSerializer.Serialize(cacheValue, _options);
 
-            await _cacheRepository.SetAsync(cacheKey, value, TimeToLive);
+            await _cacheRepository.SetAsync(cacheKey, value, timeToLive);
+        }
+
+        public async Task RemoveAsync(string cacheKey)
+        {
+            await _cacheRepository.RemoveAsync(cacheKey);
         }
     }
 }

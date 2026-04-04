@@ -8,8 +8,10 @@ namespace ECommerce.Services.Abstraction
 {
     public interface ICacheService
     {
-        Task<string?> GetAsync(string cacheKey);
+        Task<T?> GetAsync<T>(string cacheKey);
 
-        Task SetAsync(string cacheKey, object cacheValue, TimeSpan TimeToLive);
+        Task SetAsync<T>(string cacheKey, T cacheValue, TimeSpan timeToLive);
+
+        Task RemoveAsync(string cacheKey);
     }
 }

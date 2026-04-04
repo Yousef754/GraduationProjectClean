@@ -28,7 +28,7 @@ namespace ECommerce.API.Attributes
             var cacheService =
                 context.HttpContext.RequestServices.GetRequiredService<ICacheService>();
             var cacheKey = CreateCacheKey(context.HttpContext.Request);
-            var cacheValue = await cacheService.GetAsync(cacheKey);
+            var cacheValue = await cacheService.GetAsync<string>(cacheKey);
 
             if (cacheValue is not null)
             {

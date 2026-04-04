@@ -10,19 +10,18 @@ namespace ECommerce.Services.Abstraction
 {
     public interface IBasketService
     {
-        // 🔹 إنشاء أو تحديث السلة وإضافة منتجات
-        Task<BasketDTO> CreateOrUpdateBasketAsync(BasketDTO basketDto);
+        // 🔹 Get Basket (create if not exists)
+        Task<BasketDTO> GetBasketAsync(string userId);
 
-        // 🔹 جلب السلة حسب الـ Id
-        Task<BasketDTO> GetBasketAsync(string basketId);
+        // 🔹 Unified operation: add / update / remove item
+        Task<BasketDTO> UpdateItemQuantityAsync(string userId, int productId, int quantity);
 
-        // 🔹 حذف السلة
-        Task<bool> DeleteBasketAsync(string basketId);
+        // 🔹 Update delivery method
+        Task<BasketDTO> UpdateDeliveryMethodAsync(string userId, int deliveryMethodId);
 
-        // 🔹 إضافة منتج للسلة
-        Task<BasketDTO> AddProductToBasketAsync(string basketId, int productId, int quantity);
+        // 🔹 Delete basket
+        Task<bool> DeleteBasketAsync(string userId);
 
-        // 🔹 تحديث DeliveryMethod وحساب shippingPrice (باستخدام UnitOfWork)
-        Task<BasketDTO> UpdateDeliveryMethodAsync(string basketId, int deliveryMethodId, IUnitOfWork unitOfWork);
+
     }
 }

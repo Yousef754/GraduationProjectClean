@@ -2,117 +2,135 @@
 using ECommerce.Domain.Contracts;
 using ECommerce.Domain.Entities.BasketModule;
 using ECommerce.Domain.Entities.OrderModule;
+using ECommerce.Persistence.Data.DbContexts;
 using ECommerce.Services.Abstraction;
 using ECommerce.Services.Exceptions;
 using ECommerce.Shared.DTOs.BasketDTOs;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace ECommerce.Services
 {
     public class BasketService : IBasketService
     {
+        private readonly StoreDbContext _context;
         private readonly IBasketRepository _basketRepository;
         private readonly IMapper _mapper;
 
-        public BasketService(IBasketRepository basketRepository, IMapper mapper)
+        public BasketService(IBasketRepository basketRepository, IMapper mapper,StoreDbContext context)
         {
             _basketRepository = basketRepository;
             _mapper = mapper;
+            _context = context;
+
         }
 
-        // 🔹 إنشاء أو تحديث السلة وإضافة منتجات
-        public async Task<BasketDTO> CreateOrUpdateBasketAsync(BasketDTO basketDto)
+        // =========================
+        // Get Basket
+        // =========================
+        public async Task<BasketDTO> GetBasketAsync(string userId)
         {
-            var basket = new CustomerBasket
-            {
-                Id = basketDto.Id,
-                Items = new List<BasketItem>()
-            };
+            var basket = await _basketRepository.GetBasketAsync(userId);
 
-            foreach (var item in basketDto.Items)
+            if (basket == null)
             {
-                var product = await _basketRepository.GetProductByIdAsync(item.ProductId);
-                if (product == null)
-                    throw new Exception($"Product with ID {item.ProductId} not found");
-
-                basket.Items.Add(new BasketItem
+                basket = new CustomerBasket
                 {
-                    ProductId = product.Id,
-                    ProductName = product.Name,
-                    PictureUrl = product.PictureUrl,
-                    Price = product.Price,
-                    Quantity = item.Quantity
-                });
+                    UserId = userId,
+                    Items = new List<BasketItem>()
+                };
+
+                await _basketRepository.CreateOrUpdateBasketAsync(basket);
             }
 
-            await _basketRepository.CreateOrUpdateBasketAsync(basket);
             return _mapper.Map<BasketDTO>(basket);
         }
 
-        // 🔹 جلب السلة حسب الـ Id
-        public async Task<BasketDTO> GetBasketAsync(string basketId)
+        // =========================
+        // Unified Add / Update / Remove
+        // =========================
+        public async Task<BasketDTO> UpdateItemQuantityAsync(string userId, int productId, int quantity)
         {
-            var basket = await _basketRepository.GetBasketAsync(basketId);
+            if (quantity < 0)
+                throw new Exception("Quantity cannot be negative");
+
+            var basket = await _basketRepository.GetBasketAsync(userId)
+                         ?? new CustomerBasket { UserId = userId, Items = new List<BasketItem>() };
             if (basket == null)
-                throw new Exception("Basket not found");
-
-            return _mapper.Map<BasketDTO>(basket);
-        }
-
-        // 🔹 حذف السلة
-        public async Task<bool> DeleteBasketAsync(string basketId)
-        {
-            return await _basketRepository.DeleteBasketAsync(basketId);
-        }
-
-        // 🔹 إضافة منتج للسلة
-        public async Task<BasketDTO> AddProductToBasketAsync(string basketId, int productId, int quantity)
-        {
-            var basket = await _basketRepository.GetBasketAsync(basketId)
-                         ?? new CustomerBasket { Id = basketId };
+                basket = new CustomerBasket
+                {
+                    UserId = userId,
+                    Items = new List<BasketItem>()
+                };
 
             var product = await _basketRepository.GetProductByIdAsync(productId);
             if (product == null)
-                throw new Exception($"Product with ID {productId} not found");
+                throw new KeyNotFoundException($"Product {productId} not found");
 
-            var existingItem = basket.Items.FirstOrDefault(x => x.ProductId == productId);
-            if (existingItem != null)
-                existingItem.Quantity += quantity;
+            var item = basket.Items.FirstOrDefault(x => x.ProductId == productId);
+
+            if (quantity <= 0)
+            {
+                if (item != null)
+                    basket.Items.Remove(item);
+            }
             else
-                basket.Items.Add(new BasketItem
+            {
+                if (item == null)
                 {
-                    ProductId = product.Id,
-                    ProductName = product.Name,
-                    PictureUrl = product.PictureUrl,
-                    Price = product.Price,
-                    Quantity = quantity
-                });
+                    basket.Items.Add(new BasketItem
+                    {
+                        ProductId = product.Id,
+                        ProductName = product.Name,
+                        PictureUrl = product.PictureUrl,
+                        Price = product.Price,
+                        Quantity = quantity
+                    });
+                }
+                else
+                {
+                    item.Quantity = quantity;
+                }
+            }
 
             await _basketRepository.CreateOrUpdateBasketAsync(basket);
+
             return _mapper.Map<BasketDTO>(basket);
         }
 
-        // 🔹 تحديث DeliveryMethod وحساب shippingPrice باستخدام UnitOfWork
-        public async Task<BasketDTO> UpdateDeliveryMethodAsync(string basketId, int deliveryMethodId, IUnitOfWork unitOfWork)
+        // =========================
+        // Delivery Method
+        // =========================
+        public async Task<BasketDTO> UpdateDeliveryMethodAsync(
+            string userId,
+            int deliveryMethodId
+            )
         {
-            var basket = await _basketRepository.GetBasketAsync(basketId)
+            var basket = await _basketRepository.GetBasketAsync(userId)
                          ?? throw new Exception("Basket not found");
 
             basket.DeliveryMethodId = deliveryMethodId;
 
-            // 🔹 جلب DeliveryMethod من UnitOfWork وليس BasketRepository
-            var method = await unitOfWork.GetRepository<DeliveryMethod, int>()
-                                         .GetByIdAsync(deliveryMethodId)
-                         ?? throw new Exception("DeliveryMethod not found");
+            var method = await _context.DeliveryMethods
+        .FirstOrDefaultAsync(x => x.Id == deliveryMethodId)
+        ?? throw new Exception("Delivery method not found");
 
             basket.ShippingPrice = method.Price;
 
             await _basketRepository.CreateOrUpdateBasketAsync(basket);
+
             return _mapper.Map<BasketDTO>(basket);
+        }
+
+        // =========================
+        // Delete Basket
+        // =========================
+        public async Task<bool> DeleteBasketAsync(string userId)
+        {
+            return await _basketRepository.DeleteBasketAsync(userId);
         }
     }
 }

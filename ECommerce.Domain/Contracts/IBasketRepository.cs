@@ -19,7 +19,6 @@ namespace ECommerce.Domain.Contracts
 
         Task<bool> DeleteBasketAsync(string basketId);
 
-        // ميزة جديدة: جلب المنتج من DB
         Task<Product?> GetProductByIdAsync(int productId);
     }
 }

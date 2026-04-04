@@ -120,11 +120,11 @@ namespace ECommerce.Services
 
             if (stripeEvent.Type == EventTypes.PaymentIntentSucceeded)
             {
-                order.Status = OrderStatus.PaymentReceived;
+                order.Status = OrderStatus.Paid;
             }
             else if (stripeEvent.Type == EventTypes.PaymentIntentPaymentFailed)
             {
-                order.Status = OrderStatus.PaymentFailed;
+                order.Status = OrderStatus.Failed;
             }
             else
             {

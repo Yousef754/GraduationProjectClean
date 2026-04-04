@@ -1,11 +1,4 @@
-﻿using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using ECommerce.Domain.Contracts;
 using ECommerce.Domain.Entities.BasketModule;
 using ECommerce.Domain.Entities.OrderModule;
@@ -15,6 +8,14 @@ using ECommerce.Services.Specifications.OrderSpecifications;
 using ECommerce.Shared.CommonResponses;
 using ECommerce.Shared.DTOs.OrderDTOs;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System;
+using System.Buffers.Text;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 namespace ECommerce.Services
@@ -36,75 +37,91 @@ namespace ECommerce.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<Result<OrderToReturnDTO>> CreateOrderAsync(OrderDTO orderDTO, string email)
+        public async Task<Result<OrderToReturnDTO>> CreateOrderAsync(CreateOrderDto dto, string userid)
         {
-            // 1- Map shipping address
-            var orderAddress = _mapper.Map<OrderAddress>(orderDTO.ShipToAddress);
+            // 1- Get Basket by UserId
+            //var basket = await _basketRepository.GetBasketAsync(email);
 
-            // 2- Retrieve basket
-            var basket = await _basketRepository.GetBasketAsync(orderDTO.BasketId);
-            if (basket is null)
-                return Error.NotFound(
-                    "Basket.NotFound",
-                    $"The basket with Id:{orderDTO.BasketId} is not found"
-                );
+            var basket = await _basketRepository.GetBasketAsync(userid);
 
-            if (basket.PaymentIntentID is null)
-                return Error.Validation("PaymentIntent.NotFound");
+            if (basket is null || !basket.Items.Any())
+                return Error.NotFound("Basket.NotFound", "Basket is empty");
 
-            // 3- Create order items
-            List<OrderItem> orderItems = new List<OrderItem>();
+            // 2- Create Order Items + Reduce Stock
+            List<OrderItem> orderItems = new();
+
             foreach (var item in basket.Items)
             {
-                var product = await _unitOfWork.GetRepository<Product, int>().GetByIdAsync(item.ProductId);
+                var product = await _unitOfWork
+                    .GetRepository<Product, int>()
+                    .GetByIdAsync(item.ProductId);
+
                 if (product is null)
-                    return Error.NotFound(
-                        "Product.NotFound",
-                        $"The product with Id:{item.ProductId} is not found"
-                    );
+                    return Error.NotFound("Product.NotFound", $"Product {item.ProductId} not found");
+
+                // تحقق من الكمية
+                if (product.Quantity < item.Quantity)
+                    return Error.Validation("Product.OutOfStock", $"{product.Name} is out of stock");
+
+                // تقليل الكمية
+                product.Quantity -= item.Quantity;
 
                 orderItems.Add(CreateOrderItem(item, product));
             }
 
-            // 4- Retrieve delivery method
+            // 3- Get Delivery Method
             var deliveryMethod = await _unitOfWork
                 .GetRepository<DeliveryMethod, int>()
-                .GetByIdAsync(orderDTO.DeliveryMethodId);
-            if (deliveryMethod is null)
-                return Error.NotFound(
-                    "DeliveryMethod.NotFound",
-                    $"The Delivery Method with Id:{orderDTO.DeliveryMethodId} is not found"
-                );
+                .GetByIdAsync(dto.DeliveryMethodId);
 
-            // 5- Calculate subtotal
+            if (deliveryMethod is null)
+                return Error.NotFound("DeliveryMethod.NotFound", "Invalid delivery method");
+
+            // 4- Calculate Subtotal
             var subTotal = orderItems.Sum(x => x.Price * x.Quantity);
 
-            // 6- Check if order exists with this PaymentIntentId
-            var orderSpec = new OrderWithPaymentIntentSpecifications(basket.PaymentIntentID);
-            var orderRepo = _unitOfWork.GetRepository<Order, Guid>();
-            var existingOrder = await orderRepo.GetByIdAsync(orderSpec);
-            if (existingOrder is not null)
-                orderRepo.Delete(existingOrder);
-
-            // 7- Create new order
-            var order = new Order()
+            // 5- Create Order
+            var order = new Order
             {
-                UserEmail = email,
-                Address = orderAddress,
-                DeliveryMethod = deliveryMethod,
-                PaymentIntentId = basket.PaymentIntentID!,
+                UserId = userid,
+                Address = dto.Address,
+                Phone = dto.Phone,
+                PaymentMethod = dto.PaymentMethod,
+                DeliveryMethodId =dto.DeliveryMethodId,
                 SubTotal = subTotal,
                 Items = orderItems,
+                //Status = dto.PaymentMethod == PaymentMethod.Cash
+                //            ? OrderStatus.Pending
+                //            : OrderStatus.Paid
             };
 
+            var orderRepo = _unitOfWork.GetRepository<Order, Guid>();
             await orderRepo.AddAsync(order);
 
-            bool result = await _unitOfWork.SaveChangesAsync() > 0;
-            if (!result)
-                return Error.Faliure("Order.Faliure", "There was a problem while creating the order");
+            // 6- Save Changes
+            //var result = await _unitOfWork.SaveChangesAsync() > 0;
 
-            // 8- Return mapped DTO
+            //if (!result)
+            //    return Error.Faliure("Order.Failure", "Failed to create order");
+
+            try
+            {
+                var result = await _unitOfWork.SaveChangesAsync() > 0;
+                if (!result)
+                    return Error.Faliure("Order.Failure", "Failed to create order");
+            }
+            catch (Exception ex)
+            {
+                var inner = ex.InnerException?.Message;
+                return Error.Faliure("Order.Failure", inner ?? ex.Message);
+            }
+
+            // 7- Delete Basket after success
+            await _basketRepository.DeleteBasketAsync(userid);
+
+            // 8- Return DTO
             var orderToReturn = _mapper.Map<OrderToReturnDTO>(order);
+
             return Result<OrderToReturnDTO>.Ok(orderToReturn);
         }
 
@@ -124,45 +141,46 @@ namespace ECommerce.Services
         public async Task<Result<IEnumerable<OrderToReturnDTO>>> GetAllOrdersAsync(string email)
         {
             var orderSpec = new OrderSpecification(email);
-            var orders = await _unitOfWork.GetRepository<Order, Guid>().GetAllAsync(orderSpec);
+
+            var orders = await _unitOfWork
+                .GetRepository<Order, Guid>()
+                .GetAllAsync(orderSpec);
 
             if (!orders.Any())
-                return Error.NotFound(
-                    "Orders.NotFound",
-                    $"No orders found for the user with email:{email}"
-                );
+                return Error.NotFound("Orders.NotFound", $"No orders found for user {email}");
 
             var data = _mapper.Map<IEnumerable<OrderToReturnDTO>>(orders);
             return Result<IEnumerable<OrderToReturnDTO>>.Ok(data);
         }
 
-        public async Task<Result<OrderToReturnDTO>> GetOrderByIdAsync(Guid Id, string email)
+        public async Task<Result<OrderToReturnDTO>> GetOrderByIdAsync(Guid id, string email)
         {
-            var orderSpec = new OrderSpecification(Id, email);
-            var order = await _unitOfWork.GetRepository<Order, Guid>().GetByIdAsync(orderSpec);
+            var orderSpec = new OrderSpecification(id, email);
+
+            var order = await _unitOfWork
+                .GetRepository<Order, Guid>()
+                .GetByIdAsync(orderSpec);
 
             if (order is null)
-                return Error.NotFound(
-                    "Order.NotFound",
-                    $"No order found with Id:{Id} for the user with email:{email}"
-                );
+                return Error.NotFound("Order.NotFound", $"Order {id} not found");
 
             var data = _mapper.Map<OrderToReturnDTO>(order);
             return Result<OrderToReturnDTO>.Ok(data);
         }
 
+        // 🔥 Helper Method
         private OrderItem CreateOrderItem(BasketItem item, Product product)
         {
-            return new OrderItem()
+            return new OrderItem
             {
-                Product = new ProductItemOrdered()
+                Product = new ProductItemOrdered
                 {
                     ProductId = product.Id,
                     ProductName = product.Name,
-                    PictureUrl = product.PictureUrl,
+                    PictureUrl = product.PictureUrl
                 },
                 Price = product.Price,
-                Quantity = item.Quantity,
+                Quantity = item.Quantity
             };
         }
     }

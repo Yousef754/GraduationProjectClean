@@ -3,11 +3,11 @@
 namespace ECommerce.Shared.DTOs.BasketDTOs
 {
     public record BasketItemDTO
-    (
-     int ProductId,
-     string? ProductName,
-     string ?PictureUrl,
-     [Range(0, double.MaxValue)] decimal? Price,
-     [Range(0, 100)] int Quantity
-    );
+(
+    int ProductId,
+    string? ProductName,
+    string? PictureUrl,
+    decimal Price,
+    int Quantity
+);
 }

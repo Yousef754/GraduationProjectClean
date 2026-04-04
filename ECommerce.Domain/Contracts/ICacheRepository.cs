@@ -10,7 +10,8 @@ namespace ECommerce.Domain.Contracts
     {
         Task<string?> GetAsync(string cacheKey);
 
-        Task SetAsync(string cacheKey, string cacheValue, TimeSpan timeToLive);
+        Task SetAsync(string cacheKey, string value, TimeSpan timeToLive);
+
         Task RemoveAsync(string cacheKey);
     }
 }

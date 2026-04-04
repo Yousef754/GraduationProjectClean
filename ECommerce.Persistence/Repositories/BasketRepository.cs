@@ -2,6 +2,7 @@
 using ECommerce.Domain.Entities.BasketModule;
 using ECommerce.Domain.Entities.ProductModule;
 using ECommerce.Persistence.Data.DbContexts;
+using ECommerce.Services.Abstraction;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -17,51 +18,48 @@ namespace ECommerce.Persistence.Repositories
     public class BasketRepository : IBasketRepository
     {
         private readonly StoreDbContext _context;
-        private readonly ICacheRepository _cache;
+        private readonly ICacheService _cache;
 
-        public BasketRepository(StoreDbContext context, ICacheRepository cache)
+        public BasketRepository(StoreDbContext context, ICacheService cache)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
-        // ==========================
-        // جلب السلة من CacheRepository
-        // ==========================
-        public async Task<CustomerBasket?> GetBasketAsync(string basketId)
+        // ✅ Unified Cache Key
+        private string GetKey(string basketId)
         {
-            var data = await _cache.GetAsync(basketId);
-            if (string.IsNullOrEmpty(data)) return null;
-
-            return System.Text.Json.JsonSerializer.Deserialize<CustomerBasket>(data);
+            return $"basket_{basketId}";
         }
 
-        // ==========================
-        // إنشاء أو تحديث السلة
-        // ==========================
-        public async Task<CustomerBasket?> CreateOrUpdateBasketAsync(CustomerBasket basket, TimeSpan timeToLive = default)
+        public async Task<CustomerBasket?> GetBasketAsync(string basketId)
         {
-            var ttl = timeToLive == default ? TimeSpan.FromDays(1) : timeToLive;
-            var data = System.Text.Json.JsonSerializer.Serialize(basket);
-            await _cache.SetAsync(basket.Id, data, ttl);
+            return await _cache.GetAsync<CustomerBasket>(GetKey(basketId));
+        }
+
+        public async Task<CustomerBasket?> CreateOrUpdateBasketAsync(
+            CustomerBasket basket,
+            TimeSpan timeToLive = default)
+        {
+            var ttl = timeToLive == default
+                ? TimeSpan.FromDays(1)
+                : timeToLive;
+
+            await _cache.SetAsync(
+                GetKey(basket.UserId),
+                basket,
+                ttl
+            );
+
             return basket;
         }
 
-        // ==========================
-        // حذف السلة
-        // ==========================
         public async Task<bool> DeleteBasketAsync(string basketId)
         {
-            var existing = await _cache.GetAsync(basketId);
-            if (existing == null) return false;
-
-            await _cache.SetAsync(basketId, string.Empty, TimeSpan.Zero);
+            await _cache.RemoveAsync(GetKey(basketId));
             return true;
         }
 
-        // ==========================
-        // جلب منتج من DB
-        // ==========================
         public async Task<Product?> GetProductByIdAsync(int productId)
         {
             return await _context.Products.FindAsync(productId);

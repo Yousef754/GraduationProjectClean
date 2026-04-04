@@ -2,7 +2,6 @@
 {
     public class BasketItem
     {
-        public int Id { get; set; }               // معرف العنصر في السلة
         public int ProductId { get; set; }        // 🔑 ربط مباشر بالـ Product من الداتابيز
         public string ProductName { get; set; } = default!;  // نسخة الاسم
         public string PictureUrl { get; set; } = default!;   // نسخة الصورة

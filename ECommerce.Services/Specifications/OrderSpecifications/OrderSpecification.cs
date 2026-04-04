@@ -9,16 +9,16 @@ namespace ECommerce.Services.Specifications.OrderSpecifications
 {
     public class OrderSpecification : BaseSpecifications<Order, Guid>
     {
-        public OrderSpecification(string email)
-            : base(O => O.UserEmail == email)
+        public OrderSpecification(string userId)
+            : base(O => O.UserId == userId)
         {
             AddInclude(X => X.DeliveryMethod);
             AddInclude(X => X.Items);
             AddOrderByDescending(X => X.OrderDate);
         }
 
-        public OrderSpecification(Guid Id, string email)
-            : base(O => O.UserEmail == email && O.Id == Id)
+        public OrderSpecification(Guid Id, string userId)
+            : base(O => O.UserId == userId && O.Id == Id)
         {
             AddInclude(O => O.DeliveryMethod);
             AddInclude(O => O.Items);

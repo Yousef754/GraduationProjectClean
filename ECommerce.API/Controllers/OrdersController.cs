@@ -26,22 +26,34 @@ namespace ECommerce.API.Controllers
         /// <summary>
         /// إنشاء أوردر جديد
         /// </summary>
-        [HttpPost]
-        public async Task<ActionResult<OrderToReturnDTO>> CreateOrder(OrderDTO orderDTO)
+        [HttpPost("CreateOrder")]
+        public async Task<ActionResult<OrderToReturnDTO>> CreateOrder([FromBody] CreateOrderDto dto)
         {
-            var email = GetEmailFromToken();
-            var result = await _orderService.CreateOrderAsync(orderDTO, email);
+            //var userid = GetEmailFromToken();
+
+            //if (string.IsNullOrEmpty(userid))
+            //    return Unauthorized();
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var result = await _orderService.CreateOrderAsync(dto, userId);
+
             return HandleResult(result);
         }
 
         /// <summary>
         /// جلب كل الأوردرات الخاصة بالمستخدم الحالي
         /// </summary>
-        [HttpGet]
+        [HttpGet("GetAllOrdersWithSameUser")]
         public async Task<ActionResult<IEnumerable<OrderToReturnDTO>>> GetOrders()
         {
             var email = GetEmailFromToken();
+
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized();
+
             var result = await _orderService.GetAllOrdersAsync(email);
+
             return HandleResult(result);
         }
 
@@ -52,23 +64,29 @@ namespace ECommerce.API.Controllers
         public async Task<ActionResult<OrderToReturnDTO>> GetOrder(Guid id)
         {
             var email = GetEmailFromToken();
+
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized();
+
             var result = await _orderService.GetOrderByIdAsync(id, email);
+
             return HandleResult(result);
         }
 
         /// <summary>
-        /// جلب كل طرق التوصيل المتاحة (مفتوحة للجميع)
+        /// جلب كل طرق التوصيل (مفتوحة)
         /// </summary>
         [AllowAnonymous]
         [HttpGet("deliveryMethods")]
         public async Task<ActionResult<IEnumerable<DeliveryMethodDTO>>> GetDeliveryMethods()
         {
             var result = await _orderService.GetAllDeliveryMethodsAsync();
+
             return HandleResult(result);
         }
 
         /// <summary>
-        /// دالة مساعدة لاستخراج الإيميل من التوكن
+        /// استخراج الإيميل من التوكن
         /// </summary>
         private string GetEmailFromToken()
         {

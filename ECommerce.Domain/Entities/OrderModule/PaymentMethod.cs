@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace ECommerce.Domain.Entities.OrderModule
 {
-    public enum OrderStatus
+    public enum PaymentMethod
     {
-        Pending,
-        Paid,
-        Failed
+        Visa = 1,
+        
+        Cash = 2
+
     }
 }

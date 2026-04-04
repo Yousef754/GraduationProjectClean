@@ -1,10 +1,12 @@
 ﻿using ECommerce.Domain.Contracts;
 using ECommerce.Services.Abstraction;
 using ECommerce.Shared.DTOs.BasketDTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +14,7 @@ namespace ECommerce.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class BasketController : ControllerBase
     {
         private readonly IBasketService _basketService;
@@ -22,75 +25,90 @@ namespace ECommerce.API.Controllers
         }
 
         // ==========================
-        // إنشاء سلة مع منتجات
-        // POST: api/basket
+        // 1. Get Basket
+        // GET: api/basket
         // ==========================
-        [HttpPost]
-        public async Task<ActionResult<BasketDTO>> CreateBasket([FromBody] BasketDTO basket)
+        [HttpGet("GetBasket")]
+        public async Task<ActionResult<BasketDTO>> GetBasket()
         {
-            var result = await _basketService.CreateOrUpdateBasketAsync(basket);
-            return Ok(result);
-        }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        // ==========================
-        // جلب السلة
-        // GET: api/basket/{id}
-        // ==========================
-        [HttpGet("{id}")]
-        public async Task<ActionResult<BasketDTO>> GetBasket(string id)
-        {
-            try
-            {
-                var basket = await _basketService.GetBasketAsync(id);
-                return Ok(basket);
-            }
-            catch (Exception ex)
-            {
-                return NotFound();
-            }
-        }
+            var basket = await _basketService.GetBasketAsync(userId);
 
-        // ==========================
-        // حذف السلة
-        // DELETE: api/basket/{id}
-        // ==========================
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBasket(string id)
-        {
-            var success = await _basketService.DeleteBasketAsync(id);
-            if (!success) return NotFound();
-            return NoContent();
-        }
-
-        // ==========================
-        // إضافة منتج للسلة
-        // POST: api/basket/{id}/add-product
-        // ==========================
-        [HttpPost("{id}/addproduct")]
-        public async Task<ActionResult<BasketDTO>> AddProductToBasket(
-            string id,
-            [FromQuery] int productId,
-            [FromQuery] int quantity)
-        {
-            var basket = await _basketService.AddProductToBasketAsync(id, productId, quantity);
             return Ok(basket);
         }
 
-        [HttpPost("{id}/updatedelivery")]
-        public async Task<ActionResult<BasketDTO>> UpdateDeliveryMethod(
-                string id,
-                [FromQuery] int deliveryMethodId,
-                 [FromServices] IUnitOfWork unitOfWork) // مهم عشان نجيب DeliveryMethod من DB
+        // ==========================
+        // 2. Add or Update Item
+        // POST: api/basket/items
+        // ==========================
+        [HttpPost("OpenBasketWithAddOrUpdateItem")]
+        public async Task<ActionResult<BasketDTO>> UpdateItem([FromBody] BasketItemDTO dto)
         {
-            try
-            {
-                var basket = await _basketService.UpdateDeliveryMethodAsync(id, deliveryMethodId, unitOfWork);
-                return Ok(basket);
-            }
-            catch (Exception ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("UserId is NULL from token");
+
+            var basket = await _basketService.UpdateItemQuantityAsync(
+                userId,
+                dto.ProductId,
+                dto.Quantity
+            );
+
+            return Ok(basket);
+        }
+
+        // ==========================
+        // 3. Remove Item
+        // DELETE: api/basket/items/{productId}
+        // ==========================
+        [HttpDelete("Deleteitems/{productId}")]
+        public async Task<ActionResult<BasketDTO>> RemoveItem(int productId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var basket = await _basketService.UpdateItemQuantityAsync(
+                userId,
+                productId,
+                0
+            );
+
+            return Ok(basket);
+        }
+
+        // ==========================
+        // 4. Update Delivery Method
+        // POST: api/basket/delivery
+        // ==========================
+        [HttpPost("UpdateDelivery")]
+        public async Task<ActionResult<BasketDTO>> UpdateDeliveryMethod([FromBody] int deliveryMethodId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var basket = await _basketService.UpdateDeliveryMethodAsync(
+                userId,
+                deliveryMethodId
+            );
+
+            return Ok(basket);
+        }
+
+        // ==========================
+        // 5. Delete Basket
+        // DELETE: api/basket
+        // ==========================
+        [HttpDelete("DeleteBasket")]
+        public async Task<IActionResult> DeleteBasket()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var success = await _basketService.DeleteBasketAsync(userId);
+
+            if (!success)
+                return NotFound();
+
+            return NoContent();
         }
     }
 }

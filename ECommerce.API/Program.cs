@@ -21,6 +21,7 @@ using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace ECommerce.API
 {
@@ -33,7 +34,14 @@ namespace ECommerce.API
             #region Register DI Container
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+            options.JsonSerializerOptions.Converters.Add(
+             new JsonStringEnumConverter()
+                );
+            });
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
