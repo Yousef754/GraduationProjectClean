@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace ECommerce.Domain.Entities.ProductModule
 {
-    public class Category
+    public class Category:BaseEntity<int>
     {
-        public int Id { get; set; }
         public string Name { get; set; } = default!;
 
         public ICollection<Product> Products { get; set; } = new List<Product>();

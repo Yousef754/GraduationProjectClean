@@ -1,7 +1,9 @@
 ﻿using ECommerce.Domain.Entities.AppUser;
 using ECommerce.Domain.Entities.IdentityModule;
 using ECommerce.Domain.Entities.OrderModule;
+using ECommerce.Domain.Entities.ParchaseModule;
 using ECommerce.Domain.Entities.ProductModule;
+using ECommerce.Domain.Entities.Sales;
 using ECommerce.Persistence.Data.DataSeed;
 using ECommerce.Persistence.IdentityData.DataSeed;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -64,6 +66,10 @@ namespace ECommerce.Persistence.Data.DbContexts
         public DbSet<Order> Orders { get; set; }
         public DbSet<DeliveryMethod> DeliveryMethods { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+
+        public DbSet<Sale> Sales { get; set; }
+        public DbSet<Purchase> Purchases { get; set; }
+
 
         #region Old_SHAPE
         //public DbSet<ProductBrand> ProductBrands { get; set; }

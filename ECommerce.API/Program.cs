@@ -156,13 +156,16 @@ namespace ECommerce.API
             //        )
             //    );
             //}
-
+            builder.Services.AddScoped<ISaleService, SaleService>();
+            builder.Services.AddScoped<IEmployeeService, EmployeeService>();
             builder.Services.AddScoped<IBasketRepository, BasketRepository>();
             builder.Services.AddScoped<IBasketService, BasketService>();
             builder.Services.AddScoped<ICacheRepository, CacheRepository>();
             builder.Services.AddScoped<ICacheService, CacheService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
+            builder.Services.AddScoped<IPurchaseService, PurchaseService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory =
