@@ -8,7 +8,7 @@ namespace ECommerce.Domain.Entities.ParchaseModule
 {
     public enum PurchaseStatus
     {
-        ReceivedOrder = 1,
-        PendingOrder = 2,
+        PendingOrder = 1,
+        ReceivedOrder = 2,
     }
 }

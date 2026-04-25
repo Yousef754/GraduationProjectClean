@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using ECommerce.Domain.Entities.OrderModule;
 using ECommerce.Services.Abstraction;
 using ECommerce.Shared.DTOs.OrderDTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -16,11 +17,15 @@ namespace ECommerce.API.Controllers
     [Route("api/[controller]")]
     public class OrdersController : ApiBaseController
     {
+        private readonly IPaymobService _paymobService;
+
         private readonly IOrderService _orderService;
 
-        public OrdersController(IOrderService orderService)
+        public OrdersController(IOrderService orderService, IPaymobService paymobService)
         {
             _orderService = orderService;
+            _paymobService = paymobService;
+
         }
 
         /// <summary>
@@ -92,5 +97,37 @@ namespace ECommerce.API.Controllers
         {
             return User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
         }
+
+        [HttpPost("{id:guid}/pay")]
+        public async Task<ActionResult> PayOrder(Guid id)
+        {
+            // حط
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var orderResult = await _orderService.GetOrderByIdAsync(id, userId);
+            if (!orderResult.IsSuccess)
+                return BadRequest(orderResult.Errors);
+
+            var order = orderResult.Value;
+
+            // لو Cash مش محتاج دفع
+            if (order.PaymentMethod == PaymentMethod.Cash)
+                return BadRequest("Cash orders do not require payment");
+
+            // عمل Order object مؤقت عشان نبعته لـ Paymob
+            var orderForPayment = new Order
+            {
+                Phone = order.Phone,
+                Address = order.Address,
+                SubTotal = order.Subtotal,
+                DeliveryMethod = new DeliveryMethod { Price = order.DeliveryMethod.Price }
+            };
+
+            var paymentUrl = await _paymobService.GetPaymentKeyAsync(orderForPayment);
+            return Ok(new { PaymentUrl = paymentUrl });
+        }
+
     }
 }

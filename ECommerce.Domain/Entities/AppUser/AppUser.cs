@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ECommerce.Domain.Entities.AppUser
 {
-    public class AppUser : BaseEntity<int>
+    public class AppUser : BaseEntity<string>
     {
         
         public string Email { get; set; } = default!;

@@ -14,6 +14,6 @@ namespace ECommerce.Shared.DTOs.PurchaseDto
         public int? ProductId { get; init; }
         public int? Quantity { get; init; }
         public decimal? Price { get; init; }
-        public PurchaseStatus? Status { get; init; }
+        public PurchaseStatus? Status { get; init; } = PurchaseStatus.PendingOrder;
     }
 }

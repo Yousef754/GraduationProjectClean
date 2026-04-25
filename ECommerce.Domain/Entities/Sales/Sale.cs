@@ -18,7 +18,7 @@ namespace ECommerce.Domain.Entities.Sales
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal TotalAmount { get; set; }
-        public SaleStatus Status { get; set; } = SaleStatus.Completed;
+        public SaleStatus Status { get; set; } = SaleStatus.Pending;
     }
     
 }

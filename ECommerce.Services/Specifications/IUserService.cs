@@ -10,13 +10,15 @@ namespace ECommerce.Services.Specifications
 {
     public interface IUserService
     {
-        // تسجيل مستخدم جديد
         Task<AppUser> RegisterAsync(RegisterUserDto dto);
-
-        // تسجيل الدخول
-        Task<AppUser> LoginAsync(LoginUserDto dto);
-
-        // تغيير Role لمستخدم (Admin فقط)
-        Task<AppUser> ChangeUserRoleAsync(int userId, string newRole, AppUser currentUser);
+        Task<(AppUser user, string token)> LoginAsync(LoginUserDto dto);
+        Task<AppUser> ChangeUserRoleAsync(string userId, string newRole, AppUser currentUser);
+        Task ForgotPasswordAsync(string email);
+        Task ResetPasswordAsync(ResetPasswordDto dto);
+        Task<AppUser> CreateAdminAsync(CreateAdminDto dto);
+        Task LogoutAsync();
+        Task<AppUser> GetProfileAsync(string userId);
+        Task<AppUser> UpdateDisplayNameAsync(string userId, string newDisplayName);
+        Task ChangePasswordAsync(string userId, ChangePasswordDto dto);
     }
 }

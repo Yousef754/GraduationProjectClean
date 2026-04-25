@@ -8,8 +8,8 @@ namespace ECommerce.Domain.Entities.Sales
 {
     public enum SaleStatus
     {
-        Completed = 1,
-        Pending = 2,
+        Pending = 1,
+        Completed = 2,
         Cancelled = 3
     }
 }

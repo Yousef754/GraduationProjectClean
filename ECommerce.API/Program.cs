@@ -2,6 +2,7 @@
 using ECommerce.API.Extensions;
 using ECommerce.API.Factories;
 using ECommerce.Domain.Contracts;
+using ECommerce.Domain.Entities.AppUser;
 using ECommerce.Domain.Entities.IdentityModule;
 using ECommerce.Persistence.Data.DataSeed;
 using ECommerce.Persistence.Data.DbContexts;
@@ -11,6 +12,7 @@ using ECommerce.Persistence.Repositories;
 using ECommerce.Services;
 using ECommerce.Services.Abstraction;
 using ECommerce.Services.MappingProfiles;
+using ECommerce.Services.Settings;
 using ECommerce.Services.Specifications;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -172,7 +174,11 @@ namespace ECommerce.API
                     ApiResponseFactory.GenerateApiValidationResponse;
             });
 
-            
+            builder.Services.Configure<EmailSettings>(
+            builder.Configuration.GetSection("EmailSettings"));
+
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
             //builder
             //    .Services.AddIdentity<ApplicationUser, IdentityRole>()
             //    .AddEntityFrameworkStores<StoreIdentityDbContext>();
@@ -185,6 +191,12 @@ namespace ECommerce.API
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPaymobService, PaymobService>();
+
+            builder.Services.Configure<PaymobSettings>(
+            builder.Configuration.GetSection("Paymob"));
+
+            builder.Services.AddHttpClient();
 
             builder.Services.AddAutoMapper(typeof(OrderProfile));   
 

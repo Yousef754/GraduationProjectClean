@@ -17,5 +17,7 @@ namespace ECommerce.Shared.DTOs
         public int PendingOrdersCount { get; init; }
         public int TotalProducts { get; init; }
         public int LowStockProducts { get; init; }
+        public string? TopSalesEmployee { get; set; }
+        public string? TopPurchasesEmployee { get; set; }
     }
 }

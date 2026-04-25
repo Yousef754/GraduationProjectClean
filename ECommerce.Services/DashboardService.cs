@@ -58,6 +58,26 @@ namespace ECommerce.Services
             var totalProducts = await products.CountAsync();
             var lowStockProducts = await products.CountAsync(p => p.Quantity <= 5);
 
+            // Top Sales Employee
+            var topSalesEmployee = await _unitOfWork
+                .GetRepository<Sale, int>()
+                .GetAllAsQueryable()
+                .Include(s => s.Employee)
+                .GroupBy(s => s.Employee.Name)
+                .Select(g => new { EmployeeName = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .FirstOrDefaultAsync();
+
+            // Top Purchases Employee
+            var topPurchasesEmployee = await _unitOfWork
+                .GetRepository<Purchase, int>()
+                .GetAllAsQueryable()
+                .Include(p => p.Employee)
+                .GroupBy(p => p.Employee.Name)
+                .Select(g => new { EmployeeName = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .FirstOrDefaultAsync();
+
             var dashboard = new DashboardDto
             {
                 TotalEmployees = employees,
@@ -68,7 +88,9 @@ namespace ECommerce.Services
                 ReceivedOrdersCount = receivedOrdersCount,
                 PendingOrdersCount = pendingOrdersCount,
                 TotalProducts = totalProducts,
-                LowStockProducts = lowStockProducts
+                LowStockProducts = lowStockProducts,
+                TopSalesEmployee = topSalesEmployee?.EmployeeName,
+                TopPurchasesEmployee = topPurchasesEmployee?.EmployeeName,
             };
 
             return Result<DashboardDto>.Ok(dashboard);

@@ -23,105 +23,133 @@ namespace ECommerce.API.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IConfiguration _configuration;
+        private readonly IUserService _userService;
 
-        public UserController(
-            UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager,
-            IConfiguration configuration)
+        public UserController(IUserService userService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _configuration = configuration;
+            _userService = userService;
         }
 
         // ----------------- Register -----------------
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterUserDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterUserDto dto)
         {
-            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-            if (existingUser != null)
-                return BadRequest("Email already registered");
-
-            var user = new ApplicationUser
+            try
             {
-                Email = dto.Email,
-                UserName = dto.Email,
-                DisplayName = dto.FullName // لو مش عايز FullName، احذفه
-            };
-
-            var result = await _userManager.CreateAsync(user, dto.Password);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-
-            // إضافة المستخدم إلى الدور "User" بشكل افتراضي
-            if (!await _roleManager.RoleExistsAsync("User"))
-                await _roleManager.CreateAsync(new IdentityRole("User"));
-
-            await _userManager.AddToRoleAsync(user, "User");
-
-            return Ok(new { user.Id, user.Email, Role = "User" });
+                var user = await _userService.RegisterAsync(dto);
+                return Ok(new { user.Id, user.Email, user.FullName, Role = "User" });
+            }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
         }
 
         // ----------------- Login -----------------
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginUserDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginUserDto dto)
         {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
-                return Unauthorized("Invalid Email or Password");
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault() ?? "User";
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["JWTOptions:SecretKey"]);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
+            try
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, userRole)
-            }),
-                Expires = DateTime.UtcNow.AddHours(1),
-                Issuer = _configuration["JWTOptions:Issuer"],
-                Audience = _configuration["JWTOptions:Audience"],
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var jwtToken = tokenHandler.WriteToken(token);
-
-            return Ok(new
-            {
-                user.Id,
-                user.Email,
-                Role = userRole,
-                Token = jwtToken
-            });
+                var (user, token) = await _userService.LoginAsync(dto);
+                return Ok(new { user.Id, user.Email, user.FullName, user.Role, Token = token });
+            }
+            catch (InvalidOperationException ex) { return Unauthorized(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
         }
 
-        // ----------------- Change Role -----------------
-        [HttpPut("{userId}/role")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ChangeRole(string userId, [FromBody] string newRole)
+        // ----------------- Logout -----------------
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound("User not found");
+            await _userService.LogoutAsync();
+            return Ok("Logged out successfully");
+        }
 
-            if (!await _roleManager.RoleExistsAsync(newRole))
-                await _roleManager.CreateAsync(new IdentityRole(newRole));
+        // ----------------- Forgot Password -----------------
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto dto)
+        {
+            try
+            {
+                await _userService.ForgotPasswordAsync(dto.Email);
+                return Ok("Reset token sent to your email");
+            }
+            catch (InvalidOperationException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
 
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            await _userManager.AddToRoleAsync(user, newRole);
+        // ----------------- Reset Password -----------------
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            try
+            {
+                await _userService.ResetPasswordAsync(dto);
+                return Ok("Password reset successfully");
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
 
-            return Ok(new { user.Id, user.Email, Role = newRole });
+        // ----------------- Create Admin -----------------
+        [HttpPost("create-admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateAdmin([FromBody] CreateAdminDto dto)
+        {
+            try
+            {
+                var admin = await _userService.CreateAdminAsync(dto);
+                return Ok(new { admin.Id, admin.Email, admin.FullName, Role = "Admin" });
+            }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        // ----------------- Get Profile -----------------
+        [HttpGet("profile")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetProfile()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                var profile = await _userService.GetProfileAsync(userId);
+                return Ok(new { profile.FullName, profile.Email });
+            }
+            catch (InvalidOperationException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        // ----------------- Update Display Name -----------------
+        [HttpPut("profile/display-name")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateDisplayName([FromBody] UpdateDisplayNameDto dto)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                var updated = await _userService.UpdateDisplayNameAsync(userId, dto.NewDisplayName);
+                return Ok(new { updated.FullName, updated.Email, Message = "Name updated successfully" });
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        // ----------------- Change Password -----------------
+        [HttpPut("profile/change-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                await _userService.ChangePasswordAsync(userId, dto);
+                return Ok("Password changed successfully");
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
     }
 }
