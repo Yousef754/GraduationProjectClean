@@ -35,13 +35,12 @@ namespace ECommerce.Services
                 From = new MailAddress(_settings.From),
                 Subject = "Password Reset Request",
                 Body = $@"
-                <h2>Password Reset</h2>
-                <p>You requested to reset your password.</p>
-                <p>Your reset token is:</p>
-                <h3 style='color: blue;'>{resetToken}</h3>
-                <p>This token is valid for <b>1 hour</b>.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-            ",
+    <h2>Password Reset</h2>
+    <p>Your OTP code is:</p>
+    <h1 style='color: blue; letter-spacing: 5px;'>{resetToken}</h1>
+    <p>This code is valid for <b>10 minutes</b>.</p>
+    <p>If you didn't request this, please ignore this email.</p>
+",
                 IsBodyHtml = true
             };
 

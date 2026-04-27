@@ -18,7 +18,7 @@ namespace ECommerce.Services.Specifications
         Task<AppUser> CreateAdminAsync(CreateAdminDto dto);
         Task LogoutAsync();
         Task<AppUser> GetProfileAsync(string userId);
-        Task<AppUser> UpdateDisplayNameAsync(string userId, string newDisplayName);
+        Task<AppUser> UpdateProfileAsync(string userId, UpdateProfileDto dto);
         Task ChangePasswordAsync(string userId, ChangePasswordDto dto);
     }
 }

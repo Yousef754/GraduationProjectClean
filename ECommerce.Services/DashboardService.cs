@@ -90,7 +90,7 @@ namespace ECommerce.Services
                 TotalProducts = totalProducts,
                 LowStockProducts = lowStockProducts,
                 TopSalesEmployee = topSalesEmployee?.EmployeeName,
-                TopPurchasesEmployee = topPurchasesEmployee?.EmployeeName,
+                //TopPurchasesEmployee = topPurchasesEmployee?.EmployeeName,
             };
 
             return Result<DashboardDto>.Ok(dashboard);

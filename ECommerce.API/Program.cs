@@ -168,6 +168,8 @@ namespace ECommerce.API
             builder.Services.AddScoped<IDataIntializer, IdentityDataIntializer>();
             builder.Services.AddScoped<IPurchaseService, PurchaseService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddHttpClient<ChatbotService>();
+
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory =

@@ -98,8 +98,8 @@ namespace ECommerce.API.Controllers
             return User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
         }
 
-        [HttpPost("{id:guid}/pay")]
-        public async Task<ActionResult> PayOrder(Guid id)
+        [HttpPost("online/{id:guid}")]
+        public async Task<ActionResult> PayOrder([FromRoute] Guid id)
         {
             // حط
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

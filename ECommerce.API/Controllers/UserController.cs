@@ -122,18 +122,18 @@ namespace ECommerce.API.Controllers
         }
 
         // ----------------- Update Display Name -----------------
-        [HttpPut("profile/display-name")]
+        [HttpPut("profile/update")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateDisplayName([FromBody] UpdateDisplayNameDto dto)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-                var updated = await _userService.UpdateDisplayNameAsync(userId, dto.NewDisplayName);
-                return Ok(new { updated.FullName, updated.Email, Message = "Name updated successfully" });
+                var updated = await _userService.UpdateProfileAsync(userId, dto);
+                return Ok(new { updated.FullName, updated.Email, Message = "Profile updated successfully" });
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
-            catch (InvalidOperationException ex) { return NotFound(ex.Message); }
+            catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
             catch (Exception ex) { return StatusCode(500, ex.Message); }
         }
 

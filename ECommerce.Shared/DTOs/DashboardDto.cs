@@ -18,6 +18,6 @@ namespace ECommerce.Shared.DTOs
         public int TotalProducts { get; init; }
         public int LowStockProducts { get; init; }
         public string? TopSalesEmployee { get; set; }
-        public string? TopPurchasesEmployee { get; set; }
+        //public string? TopPurchasesEmployee { get; set; }
     }
 }

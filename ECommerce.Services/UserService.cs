@@ -23,18 +23,22 @@ public class UserService : IUserService
     private readonly IEmailService _emailService;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
+    private readonly ICacheService _cacheService;
+
 
     private static readonly string[] AllowedRoles = { "User", "Admin" };
 
     public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole> roleManager,
     IConfiguration configuration,
-    IEmailService emailService)
+    IEmailService emailService,
+    ICacheService cacheService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
         _emailService = emailService;
+        _cacheService = cacheService;
 
     }
 
@@ -156,8 +160,13 @@ public class UserService : IUserService
         if (user == null)
             throw new InvalidOperationException("Email not found");
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        await _emailService.SendPasswordResetEmailAsync(email, token);
+        var otp = new Random().Next(100000, 999999).ToString();
+        Console.WriteLine($"Generated OTP: '{otp}'");
+
+        await _cacheService.SetAsync($"otp_{email}", otp, TimeSpan.FromMinutes(10));
+        Console.WriteLine($"OTP saved to Redis with key: 'otp_{email}'");
+
+        await _emailService.SendPasswordResetEmailAsync(email, otp);
     }
 
     // ----------------- Reset Password - بيغير الباسورد بالـ Token -----------------
@@ -166,13 +175,25 @@ public class UserService : IUserService
         if (dto.NewPassword != dto.ConfirmNewPassword)
             throw new ArgumentException("Passwords do not match");
 
+        var cachedOtp = await _cacheService.GetAsync<string>($"otp_{dto.Email}");
+        Console.WriteLine($"Cached OTP: '{cachedOtp}'");
+        Console.WriteLine($"Input Token: '{dto.Token}'");
+        var cleanOtp = cachedOtp?.Trim('"');
+        Console.WriteLine($"Clean OTP: '{cleanOtp}'");
+
+        if (cleanOtp == null || cleanOtp != dto.Token)
+            throw new ArgumentException("Invalid or expired OTP");
+
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null)
             throw new InvalidOperationException("Email not found");
 
-        var result = await _userManager.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
         if (!result.Succeeded)
             throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+
+        await _cacheService.RemoveAsync($"otp_{dto.Email}");
     }
 
     // ----------------- Logout -----------------
@@ -235,16 +256,31 @@ public class UserService : IUserService
     }
 
     // ----------------- Update Display Name -----------------
-    public async Task<AppUser> UpdateDisplayNameAsync(string userId, string newDisplayName)
+    public async Task<AppUser> UpdateProfileAsync(string userId, UpdateProfileDto dto)
     {
-        if (string.IsNullOrWhiteSpace(newDisplayName))
+        if (string.IsNullOrWhiteSpace(dto.NewDisplayName))
             throw new ArgumentException("Display name cannot be empty");
 
-        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (string.IsNullOrWhiteSpace(dto.NewEmail))
+            throw new ArgumentException("Email cannot be empty");
+
+        var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             throw new InvalidOperationException("User not found");
 
-        user.DisplayName = newDisplayName;
+        // تحقق إن الإيميل الجديد مش متسجل قبل كدا
+        if (user.Email != dto.NewEmail)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(dto.NewEmail);
+            if (existingUser != null)
+                throw new InvalidOperationException("Email is already registered");
+
+            user.Email = dto.NewEmail;
+            user.UserName = dto.NewEmail;
+        }
+
+        user.DisplayName = dto.NewDisplayName;
+
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));

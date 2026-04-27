@@ -27,9 +27,11 @@ namespace ECommerce.Services
         public async Task<T?> GetAsync<T>(string cacheKey)
         {
             var data = await _cacheRepository.GetAsync(cacheKey);
-
             if (string.IsNullOrEmpty(data))
                 return default;
+
+            if (typeof(T) == typeof(string))
+                return (T)(object)data.Trim('"');
 
             return JsonSerializer.Deserialize<T>(data, _options);
         }

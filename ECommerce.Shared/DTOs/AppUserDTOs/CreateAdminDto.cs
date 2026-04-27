@@ -20,8 +20,11 @@ namespace ECommerce.Shared.DTOs.AppUserDTOs
         public string ConfirmNewPassword { get; set; } = default!;
     }
 
-    public class UpdateDisplayNameDto
+    public class UpdateProfileDto
     {
         public string NewDisplayName { get; set; } = default!;
+        public string NewEmail { get; set; } = default!;
     }
+
+
 }
